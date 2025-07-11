@@ -49,15 +49,18 @@ sensor:
     id: lora_rssi
     name: "LoRa RSSI"
 
-binary_sensor:
+text_sensor:
   - platform: lora_sx126x
     id: pump_cmd
-    on_string: "PUMP_ON"
-    off_string: "PUMP_OFF"
-    on_press:
-      - switch.turn_on: pump_relay
-    on_release:
-      - switch.turn_off: pump_relay
+    name: "Pump Command"
+    on_value:
+      then:
+        - lambda: |-
+            if (x == "PUMP_ON") {
+              id(pump_relay).turn_on();
+            } else if (x == "PUMP_OFF") {
+              id(pump_relay).turn_off();
+            }
 
 switch:
   - platform: gpio
