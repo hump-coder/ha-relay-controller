@@ -5,6 +5,18 @@ esphome:
     - "Ticker"
     - "SX126x-Arduino"
 
+font:
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 12
+  - file: "gfonts://Roboto"
+    id: font_large
+    size: 20
+
+i2c:
+  sda: GPIO17
+  scl: GPIO18
+
 esp32:
   board: esp32-s3-devkitc-1
   framework:
@@ -44,12 +56,11 @@ lora_sx126x:
   pin_lora_miso: 11
   pin_lora_mosi: 10
 
-sensor:
-  - platform: lora_sx126x
-    id: lora_rssi
-    name: "LoRa RSSI"
-
 text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      id: wifi_ip
   - platform: lora_sx126x
     id: pump_cmd
     name: "Pump Command"
@@ -61,6 +72,40 @@ text_sensor:
             } else if (x == "PUMP_OFF") {
               id(pump_relay).turn_off();
             }
+
+sensor:
+  - platform: lora_sx126x
+    id: lora_rssi
+    name: "LoRa RSSI"
+
+display:
+  - platform: ssd1306_i2c
+    id: oled
+    model: "SSD1306 128x64"
+    address: 0x3C
+    reset_pin: GPIO21
+    update_interval: 1s
+    pages:
+      - id: page_startup
+        lambda: |-
+          it.printf(0, 20, id(font_large), "%s", App.get_name().c_str());
+          it.printf(0, 44, id(font_small), "Starting...");
+      - id: page_main
+        lambda: |-
+          it.printf(0, 0, id(font_small), "IP: %s", id(wifi_ip).state.c_str());
+          it.printf(0, 16, id(font_small), "RSSI: %.0f", id(lora_rssi).state);
+          auto cmd = id(pump_cmd).state.c_str();
+          it.printf(0, 32, id(font_small), "Cmd: %s", cmd);
+          bool relay_on = id(pump_relay).state;
+          it.printf(0, 48, id(font_small),
+                     "Relay: %s", relay_on ? "ON" : "OFF");
+
+interval:
+  - id: startup_display_timer
+    interval: 5s
+    then:
+      - display.page.show_next: oled
+      - interval.stop: startup_display_timer
 
 switch:
   - platform: gpio
