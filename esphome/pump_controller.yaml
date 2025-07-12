@@ -4,7 +4,14 @@ esphome:
     - "SPI"
     - "Ticker"
     - "SX126x-Arduino"
-
+  on_boot:
+    - priority: 1000
+      then:
+        - lambda: |-
+            pinMode(36, OUTPUT);
+            digitalWrite(36, LOW);
+            // Heltec delays for 100ms in their example
+            delay(100);
 font:
   - file: "gfonts://Roboto"
     id: font_small
@@ -86,17 +93,17 @@ display:
           bool pump_on = id(pump_control_switch).state;
           it.printf(0, 32, id(font_small), "Pump: %s", pump_on ? "ON" : "OFF");
 
-interval:
-  - id: startup_display_timer
-    interval: 5s
-    then:
-      - display.page.show_next: oled
-      - interval.stop: startup_display_timer
+#interval:
+#  - id: startup_display_timer
+#    interval: 5s
+#    then:
+#      - display.page.show_next: oled
+#      - interval.stop: startup_display_timer
 
 switch:
   - platform: lora_sx126x
     id: pump_control_switch
     name: "Pump Control"
-    on_msg: "PUMP_ON"
-    off_msg: "PUMP_OFF"
+#    on_msg: "PUMP_ON"
+#    off_msg: "PUMP_OFF"
     optimistic: true
