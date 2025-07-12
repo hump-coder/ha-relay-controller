@@ -1,10 +1,7 @@
 #include <heltec.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
-
-const char *ssid = "YOUR_WIFI";
-const char *password = "YOUR_PASS";
-const char *mqtt_server = "192.168.1.10";
+#include "config.h"
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
