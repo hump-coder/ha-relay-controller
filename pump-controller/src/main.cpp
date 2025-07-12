@@ -243,6 +243,9 @@ void setup() {
                                    LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
                                    0, true, 0, 0, LORA_IQ_INVERSION_ON, true );
 
+    // Begin in continuous receive mode so incoming packets are processed
+    Radio.Rx( 0 );
+
     Serial.println("Init Radio - complete");
 
 
@@ -256,8 +259,6 @@ void setup() {
     publishState();
     
     Serial.println("Init MQTT - complete");
-
-   	deviceState = DEVICE_STATE_INIT;
 }
 
 unsigned long lastUpdate = 0;
@@ -299,26 +300,31 @@ void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
     //rxSize=size;
     memcpy(rxpacket, payload, size );
     rxpacket[size]='\0';
-    Radio.Sleep( );
+    Radio.Sleep();
 
     Serial.printf("\r\nreceived packet \"%s\" with Rssi %d , length %d\r\n",rxpacket,rssi,size);
     Serial.println("wait to send next packet");
 
-    state = lora_idle;
-    //  state=DEVICE_STATE_TX;
+    lora_idle = true;
+    // Resume listening for the next packet
+    Radio.Rx( 0 );
 }
 
 void OnTxDone( void )
 {
-	Serial.println("TX done......");
-	lora_idle = true;
+        Serial.println("TX done......");
+        lora_idle = true;
+        // After transmitting, return to receive mode
+        Radio.Rx( 0 );
     //state=STATE_RX;
 }
 
 void OnTxTimeout( void )
 {
-    Radio.Sleep( );
+    Radio.Sleep();
     Serial.println("TX Timeout......");
     lora_idle = true;
+    // Return to receive mode after a timeout
+    Radio.Rx( 0 );
      //state=STATE_RX;
 }
