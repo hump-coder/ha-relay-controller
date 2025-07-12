@@ -59,6 +59,7 @@ bool lora_idle=true;
 static RadioEvents_t RadioEvents;
 void OnTxDone( void );
 void OnTxTimeout( void );
+void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr );
 
 
 
@@ -74,7 +75,7 @@ void updateDisplay() {
 }
 
 void publishState() {
-    mqttClient.publish("pump_controller/switch/state", pumpOn ? "ON" : "OFF", true);
+    mqttClient.publish("pump_station/switch/state", pumpOn ? "ON" : "OFF", true);
     updateDisplay();
 }
 
@@ -100,19 +101,19 @@ void mqttCallback(char *topic, byte *payload, unsigned int length) {
 }
 
 void sendDiscovery() {
-    const char *discoveryTopic = "homeassistant/switch/pump_controller/config";
-    String payload = "{\"name\":\"Pump\",\"command_topic\":\"pump_controller/switch/set\",\"state_topic\":\"pump_controller/switch/state\",\"payload_on\":\"ON\",\"payload_off\":\"OFF\",\"unique_id\":\"pump_controller\",\"device\":{\"identifiers\":[\"pump_controller\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
+    const char *discoveryTopic = "homeassistant/switch/pump_station/config";
+    String payload = "{\"name\":\"Pump\",\"command_topic\":\"pump_station/switch/set\",\"state_topic\":\"pump_station/switch/state\",\"payload_on\":\"ON\",\"payload_off\":\"OFF\",\"unique_id\":\"pump_station\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
     mqttClient.publish(discoveryTopic, payload.c_str(), true);
 }
 
 void ensureMqtt() {
     while (!mqttClient.connected()) {
-        mqttClient.connect("pump_controller", mqtt_user, mqtt_pass);
+        mqttClient.connect("pump_station", mqtt_user, mqtt_pass);
         if (!mqttClient.connected()) {
             delay(500);
         }
     }
-    mqttClient.subscribe("pump_controller/switch/set");
+    mqttClient.subscribe("pump_station/switch/set");
 }
 
 // RTC_DATA_ATTR bool firstrun = true;
@@ -226,6 +227,7 @@ void setup() {
 
     RadioEvents.TxDone = OnTxDone;
     RadioEvents.TxTimeout = OnTxTimeout;
+    RadioEvents.RxDone = OnRxDone;
     Serial.println("Init Radio.");
 
     Radio.Init( &RadioEvents );
@@ -234,6 +236,12 @@ void setup() {
                                    LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                                    LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
                                    true, 0, 0, LORA_IQ_INVERSION_ON, 3000 ); 
+
+
+    Radio.SetRxConfig( MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
+                                   LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
+                                   LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
+                                   0, true, 0, 0, LORA_IQ_INVERSION_ON, true );
 
     Serial.println("Init Radio - complete");
 
@@ -256,11 +264,11 @@ unsigned long lastUpdate = 0;
 
 void loop() {
 
-    if(millis() - lastUpdate > 1000)
-    {
-      Serial.printf("RSSI: %d\n", Radio.Rssi);
-      lastUpdate = millis();      
-    }
+    // if(millis() - lastUpdate > 1000)
+    // {
+    //   Serial.printf("RSSI: %d\n", Radio.Rssi);
+    //   lastUpdate = millis();      
+    // }
     
 
 
@@ -285,12 +293,26 @@ void loop() {
 }
 
 
+void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
+{
+    //Rssi=rssi;
+    //rxSize=size;
+    memcpy(rxpacket, payload, size );
+    rxpacket[size]='\0';
+    Radio.Sleep( );
 
+    Serial.printf("\r\nreceived packet \"%s\" with Rssi %d , length %d\r\n",rxpacket,rssi,size);
+    Serial.println("wait to send next packet");
+
+    state = lora_idle;
+    //  state=DEVICE_STATE_TX;
+}
 
 void OnTxDone( void )
 {
 	Serial.println("TX done......");
 	lora_idle = true;
+    //state=STATE_RX;
 }
 
 void OnTxTimeout( void )
@@ -298,4 +320,5 @@ void OnTxTimeout( void )
     Radio.Sleep( );
     Serial.println("TX Timeout......");
     lora_idle = true;
+     //state=STATE_RX;
 }
