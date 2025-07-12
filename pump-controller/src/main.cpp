@@ -107,7 +107,7 @@ void sendDiscovery() {
 
 void ensureMqtt() {
     while (!mqttClient.connected()) {
-        mqttClient.connect("pump_controller");
+        mqttClient.connect("pump_controller", mqtt_user, mqtt_pass);
         if (!mqttClient.connected()) {
             delay(500);
         }
@@ -129,6 +129,33 @@ void testfillroundrect(void) {
   }
 
   delay(2000);
+}
+
+void testscrolltext(void) {
+  display.clearDisplay();
+
+  display.setTextSize(2); // Draw 2X-scale text
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(10, 0);
+  display.println(F("scroll"));
+  display.display();      // Show initial text
+  delay(100);
+
+  // Scroll in various directions, pausing in-between:
+  display.startscrollright(0x00, 0x0F);
+  delay(2000);
+  display.stopscroll();
+  delay(1000);
+  display.startscrollleft(0x00, 0x0F);
+  delay(2000);
+  display.stopscroll();
+  delay(1000);
+  display.startscrolldiagright(0x00, 0x07);
+  delay(2000);
+  display.startscrolldiagleft(0x00, 0x07);
+  delay(2000);
+  display.stopscroll();
+  delay(1000);
 }
 
 void setup() {
@@ -156,8 +183,17 @@ void setup() {
         Serial.println(F("SSD1306 allocation failed"));
     //    for(;;); // Don't proceed, loop forever
     }
-    Serial.println("Display inited.");
+    Serial.println("Init display - complete.");
 
+
+    Serial.println("Init Wifi");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(500);
+    }
+    Serial.println("Init Wifi - complete");
+
+    
     Mcu.begin();
 
 //    if(firstrun)
@@ -169,10 +205,10 @@ void setup() {
       // Show initial display buffer contents on the screen --
       // the library initializes this with an Adafruit splash screen.
       display.display();
-      delay(2000); // Pause for 2 seconds
+      delay(1000); // Pause for 2 seconds
 
       // Clear the buffer
-      display.clearDisplay();
+ //     display.clearDisplay();
 
     //   firstrun = false;
   //  }
@@ -180,17 +216,18 @@ void setup() {
     // Draw a single pixel in white
     //display.drawPixel(10, 10, SSD1306_WHITE);
 
-    testfillroundrect();
+    //testscrolltext();
     // Show the display buffer on the screen. You MUST call display() after
     // drawing commands to make them visible on screen!
-    display.display();
-    delay(2000);
+    //display.display();
+    //delay(2000);
 
     txNumber=0;
 
     RadioEvents.TxDone = OnTxDone;
     RadioEvents.TxTimeout = OnTxTimeout;
-    
+    Serial.println("Init Radio.");
+
     Radio.Init( &RadioEvents );
     Radio.SetChannel( RF_FREQUENCY );
     Radio.SetTxConfig( MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
@@ -198,23 +235,34 @@ void setup() {
                                    LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
                                    true, 0, 0, LORA_IQ_INVERSION_ON, 3000 ); 
 
+    Serial.println("Init Radio - complete");
 
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-    }
 
+    Serial.println("Init MQTT");
     mqttClient.setServer(mqtt_server, 1883);
     mqttClient.setCallback(mqttCallback);
+    
 
     ensureMqtt();
     sendDiscovery();
     publishState();
+    
+    Serial.println("Init MQTT - complete");
 
    	deviceState = DEVICE_STATE_INIT;
 }
 
+unsigned long lastUpdate = 0;
+
 void loop() {
+
+    if(millis() - lastUpdate > 1000)
+    {
+      Serial.printf("RSSI: %d\n", Radio.Rssi);
+      lastUpdate = millis();      
+    }
+    
+
 
 	if(lora_idle == true)
 	{
@@ -227,7 +275,7 @@ void loop() {
 		Radio.Send( (uint8_t *)txpacket, strlen(txpacket) ); //send the package out	
         lora_idle = false;
 	}
-    Radio.IrqProcess( );
+    
 
 
     if (!mqttClient.connected()) {
