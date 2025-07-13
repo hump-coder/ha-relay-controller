@@ -1,10 +1,22 @@
 # ha-relay-controller
 
-Example ESPHome configuration for a LoRa based pump controller. Two Heltec WiFi LoRa 32 V3 boards communicate over LoRa using the [lora_sx126x](https://github.com/PaulSchulz/esphome-lora-sx126x) external component.
+This repository contains a PlatformIO project for a LoRa based pump control system using Heltec WiFi LoRa 32 V3 boards. Two identical devices communicate over LoRa and can operate in one of two roles controlled by the `isController` flag in `pump-controller/src/main.cpp`.
 
-- `pump_controller.yaml` sends on/off commands.
-- `pump_station.yaml` listens for those commands via a text sensor and toggles a relay.
+- **Controller mode** (`isController = true`): connects to WiFi and MQTT, sends `ON`/`OFF` messages and processes acknowledgements.
+- **Receiver mode** (`isController = false`): listens for LoRa commands and toggles a relay. WiFi is disabled by default.
 
-Both YAML files require WiFi credentials and API/OTA secrets via the standard ESPHome `secrets.yaml` mechanism. LoRa pins are configured for the Heltec V3 board.
+## Building
 
-Place the files in your ESPHome configuration directory and compile using Home Assistant's ESPHome integration (2025.7.1 or later).
+1. Copy `pump-controller/include/config-example.h` to `pump-controller/include/config.h` and enter your WiFi and MQTT credentials.
+2. Build the firmware with PlatformIO:
+
+```bash
+cd pump-controller
+pio run
+```
+
+The default environment targets the Heltec WiFi LoRa 32 V3 board.
+
+## Usage
+
+Flash the compiled firmware to two boards. Set `isController` as required before compiling each device. Both devices display basic status information on the onboard OLED screen.
