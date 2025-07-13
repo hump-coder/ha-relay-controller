@@ -9,6 +9,14 @@
 #include "device.h"
 #include "display.h"
 
+
+enum RelayState
+{
+    UNKNOWN,
+    ON,
+    OFF
+};
+
 class Controller : public Device
 {
     public:
@@ -22,6 +30,8 @@ class Controller : public Device
     void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr );
     void OnTxDone();
     void OnTxTimeout();
+ 
+    void processReceived(char *rxpacket);
 
     private:
     Display &mDisplay;
@@ -29,9 +39,9 @@ class Controller : public Device
     uint16_t mLastMessageSize;
     int16_t mLastRssi;
     int8_t mLastSnr;
-    uint16_t mMessageNumber;
-    bool relayState;
-    bool requestedRelayState;    
+    uint16_t mStateId;
+    RelayState relayState;
+    RelayState requestedRelayState;    
 
 char txpacket[BUFFER_SIZE];
 char rxpacket[BUFFER_SIZE];
@@ -48,6 +58,9 @@ void ensureMqtt();
 void updateDisplay();
 void sendMessage(const char *msg);
 void setRelayState(bool pumpOn);
+
+
+
 
 
 

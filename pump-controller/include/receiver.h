@@ -25,6 +25,13 @@ class Receiver : public Device
     uint16_t mLastMessageSize;
     int16_t mLastRssi;
     int8_t mLastSnr;
+    bool mRelayState;
+    int acksRemaining;
+    void sendAck(char *rxpacket);
+    void setRelayState(bool newRelayState);
+    void processReceived(char *rxpacket);
+
+
 };
 
 

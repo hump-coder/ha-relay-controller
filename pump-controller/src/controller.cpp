@@ -38,9 +38,9 @@ Controller::Controller(Display &display) : mDisplay(display), mqttClient(espClie
     mLastMessageSize = 0;
     mLastRssi = 0;
     mLastSnr = 0;
-    mMessageNumber = 1;
-    relayState = false;
-    requestedRelayState = false;
+    mStateId = 1;
+    relayState = RelayState::UNKNOWN;
+    requestedRelayState = RelayState::UNKNOWN;
 }
 
 
@@ -81,6 +81,10 @@ void controllerMqttCallback(char *topic, byte *payload, unsigned int length)
 
 void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
     String cmd;
+
+    Serial.println("MQTT CALLBACK");
+
+
     for (unsigned int i = 0; i < length; i++) {
         cmd += (char)payload[i];
     }
@@ -166,7 +170,7 @@ void Controller::setup() {
 void Controller::sendMessage(const char *msg)
 {
         //snprintf(txpacket, sizeof(txpacket), msg.c_str());
- 		sprintf(txpacket,"%ld:%s",++mMessageNumber, msg);  //start a package
+ 		sprintf(txpacket,"C:%ld:%s",mStateId, msg);  //start a package
    
 		Serial.printf("Sending packet \"%s\", length %d\r\n",txpacket, strlen(txpacket));
 
@@ -179,20 +183,28 @@ void Controller::sendMessage(const char *msg)
 
 void Controller::setRelayState(bool pumpOn)
 {
-  requestedRelayState = pumpOn;
-  //
-  // relayState should only be set on confirmation from the receiver station.
-  // but we do it here until implemented.
-  //
-  relayState = pumpOn;
+  ++mStateId;
+  requestedRelayState = pumpOn ? RelayState::ON : RelayState::OFF;
+  relayState = RelayState::UNKNOWN;  
+  sendMessage(pumpOn ?"ON" : "OFF");
 }
 
 
 void Controller::loop() {
 
-    if(lora_idle && millis() - lastSend > 1000)
+    if(lora_idle && millis() - lastSend > 5000)
     {
-        sendMessage("ON");
+        if(requestedRelayState != relayState)
+        {
+            // if(requestedRelayState == RelayState::ON)
+            // {
+            //    sendMessage("ON");
+            // }
+            // else
+            // {
+            //     sendMessage("OFF");
+            // }
+        }
 
 
 		// //txNumber += 0.01;
@@ -203,7 +215,7 @@ void Controller::loop() {
         // lora_idle = false;
 		// Radio.Send( (uint8_t *)txpacket, strlen(txpacket) ); //send the package out	
        
-        // Serial.println("packet sent.");
+        Serial.print(".");
 
       lastSend = millis();      
     }
@@ -225,11 +237,18 @@ void Controller::loop() {
     //     lora_idle = false;
 	// }
     
-   // if(lora_idle == false)
+
+    if(lora_idle)
+    {
+      Radio.Rx( 0 );
+    }
+
+
+    // if(lora_idle == false)
     {
       Radio.IrqProcess( );
     }
-
+    
     if (!mqttClient.connected()) {
         ensureMqtt();
     }
@@ -238,7 +257,44 @@ void Controller::loop() {
 
 
 
+void Controller::processReceived(char *rxpacket)
+{
+    char *strings[10];
+    char *ptr = NULL;
+    int index = 0;
+    ptr = strtok(rxpacket, ":;"); // takes a list of delimiters
+    while (ptr != NULL)
+    {
+        strings[index] = ptr;
+        index++;
+        ptr = strtok(NULL, ":;"); // takes a list of delimiters
+    }
 
+    
+    if (index >= 3)
+    {
+        if (strlen(strings[0]) == 1 && strings[0][0] == 'R')
+        {
+            uint16_t stateId = atoi(strings[1]);
+            RelayState confirmedRelayState = (strcasecmp(strings[2], "ON") == 0) ? RelayState::ON : RelayState::OFF;
+            
+            if(mStateId == stateId && confirmedRelayState == requestedRelayState)
+            {
+                Serial.printf("Relay state configmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON": "OFF");
+                relayState = confirmedRelayState;
+                //
+                // Increment state id to ensure we don't process acks for this message again.
+                //
+                ++mStateId;
+                publishState();
+            }
+            else
+            {                
+                Serial.println("Skipping - likely an old ack");
+            }
+        }
+    }
+}
 
 void Controller::OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
@@ -254,6 +310,8 @@ void Controller::OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
     lora_idle = true;
     // Resume listening for the next packet
     Radio.Rx( 0 );
+
+    processReceived((char *) payload);
 }
 
 void Controller::OnTxDone( void )

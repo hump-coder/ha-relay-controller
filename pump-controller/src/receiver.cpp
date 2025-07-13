@@ -17,6 +17,7 @@ Receiver *instance;
 
 char txpacket[BUFFER_SIZE];
 char rxpacket[BUFFER_SIZE];
+char ackpacket[BUFFER_SIZE];
 
 double txNumber;
 
@@ -41,15 +42,18 @@ Receiver::Receiver(Display &display, bool enableWifi) : mDisplay(display), mWifi
     mLastMessageSize = 0;
     mLastRssi = 0;
     mLastSnr = 0;
+    mRelayState = false;
+    acksRemaining = 0;
 }
 
 void Receiver::updateDisplay()
 {
     mDisplay.display.clearDisplay();
-    mDisplay.display.setTextSize(2); // Draw 2X-scale text
+    mDisplay.display.setTextSize(1); // Draw 2X-scale text
     mDisplay.display.setTextColor(SSD1306_WHITE);
     mDisplay.display.setCursor(10, 0);
-    mDisplay.display.println(F("Receiver"));
+    mDisplay.display.printf("Receiver - relay: ");
+    mDisplay.display.println(mRelayState ? "ON" : "OFF");
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
 
     mDisplay.display.setCursor(10, 22);
@@ -157,22 +161,77 @@ unsigned long lastScreenUpdate = 0;
 
 void Receiver::loop()
 {
-
     if (millis() - lastScreenUpdate > 1000)
     {
         updateDisplay();
+
+        if (acksRemaining)
+        {
+            --acksRemaining;
+            delay(100);
+            sendAck(ackpacket);
+        }
+
         lastScreenUpdate = millis();
     }
+
     // if(lora_idle == false)
     {
         Radio.IrqProcess();
     }
 }
 
+void Receiver::sendAck(char *packet)
+{
+    //
+    // Mark the packet as from the receiver.
+    //
+    packet[0] = 'R';
+
+    Serial.printf("Sending ack \"%s\", length %d\r\n", rxpacket, strlen(packet));
+
+    lora_idle = false;
+    Radio.Send((uint8_t *)packet, strlen(packet)); // send the package out
+
+    Serial.println("ack packet sent.");
+}
+
+void Receiver::setRelayState(bool newRelayState)
+{
+    mRelayState = newRelayState;
+}
+
+void Receiver::processReceived(char *rxpacket)
+{
+    char *strings[10];
+    char *ptr = NULL;
+    int index = 0;
+
+    strcpy(ackpacket, rxpacket);
+
+    ptr = strtok(rxpacket, ":;"); // takes a list of delimiters
+    while (ptr != NULL)
+    {
+        strings[index] = ptr;
+        index++;
+        ptr = strtok(NULL, ":;"); // takes a list of delimiters
+    }
+
+    if (index >= 3)
+    {
+        if (strlen(strings[0]) == 1 && strings[0][0] == 'C')
+        {
+            uint16_t stateId = atoi(strings[1]);
+            bool newRelayState = strcasecmp(strings[2], "ON") == 0;
+            setRelayState(newRelayState);
+            delay(200);
+            acksRemaining = 4;
+        }
+    }
+}
+
 void Receiver::OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
-    // Rssi=rssi;
-    // rxSize=size;
     memcpy(rxpacket, payload, size);
     rxpacket[size] = '\0';
     Radio.Sleep();
@@ -183,11 +242,7 @@ void Receiver::OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t sn
     mLastSnr = snr;
 
     Serial.printf("\r\nreceived packet \"%s\" with Rssi %d , length %d\r\n", rxpacket, rssi, size);
-    // Serial.println("wait to send next packet");
-
-    // lora_idle = true;
-    // Resume listening for the next packet
-    // Radio.Rx( 0 );
+    processReceived(rxpacket);
     setIdle();
 }
 
@@ -195,10 +250,6 @@ void Receiver::OnTxDone(void)
 {
     Serial.println("TX done......");
     setIdle();
-    // lora_idle = true;
-    // // After transmitting, return to receive mode
-    // Radio.Rx( 0 );
-    // state=STATE_RX;
 }
 
 void Receiver::OnTxTimeout()
