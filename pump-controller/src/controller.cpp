@@ -43,6 +43,18 @@ Controller::Controller(Display &display) : mDisplay(display), mqttClient(espClie
     requestedRelayState = RelayState::UNKNOWN;
 }
 
+String relayStateToString(RelayState state)
+{
+  switch (state)
+  {
+  case RelayState::OFF:
+    return "OFF";
+  case RelayState::ON:
+    return "ON";  
+  }
+  
+  return "UNKNOWN";  
+}
 
 void Controller::updateDisplay()
 {
@@ -50,7 +62,7 @@ void Controller::updateDisplay()
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
     mDisplay.display.setTextColor(SSD1306_WHITE);
     mDisplay.display.setCursor(10, 0);
-    mDisplay.display.println(F("Controller"));
+    mDisplay.display.printf("Controller: %s", relayStateToString(relayState));
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
 
     mDisplay.display.setCursor(10, 22);
@@ -70,7 +82,7 @@ void Controller::updateDisplay()
 
 
 void Controller::publishState() {
-    mqttClient.publish("pump_station/switch/state", relayState ? "ON" : "OFF", true);
+    mqttClient.publish("pump_station/switch/state", relayStateToString(relayState).c_str(), true);
     updateDisplay();
 }
 
@@ -97,11 +109,54 @@ void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
     publishState();
 }
 
+#define BASE_TOPIC "esp32-lora-controller"
+
+#define MQTT_DEVICE \
+    "\"device\": {" \
+      "\"identifiers\": [\"esp32-lora-controller\"]," \
+      "\"name\": \"ESP32 LoRa Controller\"," \
+      "\"manufacturer\": \"HumpTech\"," \
+      "\"model\": \"ESP32-LORA-PC\"," \
+      "\"sw_version\": \"1.0\"" \
+    "}"
+
 void Controller::sendDiscovery() {
     const char *discoveryTopic = "homeassistant/switch/pump_station/config";
     String payload = "{\"name\":\"Pump\",\"command_topic\":\"pump_station/switch/set\",\"state_topic\":\"pump_station/switch/state\",\"payload_on\":\"ON\",\"payload_off\":\"OFF\",\"unique_id\":\"pump_station\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
     mqttClient.publish(discoveryTopic, payload.c_str(), true);
 }
+
+
+
+// void Controller::sendDiscovery()
+// {
+
+//   char topic[128];
+//   char payload[2048];
+
+//   const char *THING_NAME = "pump_station";
+
+//   snprintf(topic, sizeof(topic), "homeassistant/switch/%s/config", THING_NAME);
+//   snprintf(payload, sizeof(payload),
+//            "{"
+//            "%s,"
+//            "\"name\": \"%s\","
+//            "\"unique_id\": \"%s\","
+//            "\"command_topic\": \"%s/switch/set\","
+//            "\"state_topic\": \"%s/switch/state\","
+//         //    "\"availability_topic\": \"%s/status\","
+//            "\"payload_on\": \"ON\","
+//            "\"payload_off\": \"OFF\""
+//            "}",
+//            MQTT_DEVICE,
+//            THING_NAME,           
+//            THING_NAME,
+//            BASE_TOPIC,
+//            BASE_TOPIC,
+//            BASE_TOPIC);
+
+//            mqttClient.publish(topic, payload, true);
+// }
 
 void Controller::ensureMqtt() {
     while (!mqttClient.connected()) {
@@ -276,11 +331,11 @@ void Controller::processReceived(char *rxpacket)
         if (strlen(strings[0]) == 1 && strings[0][0] == 'R')
         {
             uint16_t stateId = atoi(strings[1]);
-            RelayState confirmedRelayState = (strcasecmp(strings[2], "ON") == 0) ? RelayState::ON : RelayState::OFF;
+            RelayState confirmedRelayState = (strcasecmp(strings[2], "on") == 0) ? RelayState::ON : RelayState::OFF;
             
             if(mStateId == stateId && confirmedRelayState == requestedRelayState)
             {
-                Serial.printf("Relay state configmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON": "OFF");
+                Serial.printf("Relay state confirmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON": "OFF");
                 relayState = confirmedRelayState;
                 //
                 // Increment state id to ensure we don't process acks for this message again.
@@ -290,7 +345,7 @@ void Controller::processReceived(char *rxpacket)
             }
             else
             {                
-                Serial.println("Skipping - likely an old ack");
+                Serial.printf("Skipping - likely an old ack expected stateid: %d, state: %s = %s.\n",mStateId , relayStateToString(confirmedRelayState).c_str(), strings[2]);
             }
         }
     }
@@ -311,7 +366,7 @@ void Controller::OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
     // Resume listening for the next packet
     Radio.Rx( 0 );
 
-    processReceived((char *) payload);
+    processReceived((char *) rxpacket);
 }
 
 void Controller::OnTxDone( void )

@@ -207,6 +207,7 @@ void Receiver::processReceived(char *rxpacket)
     char *ptr = NULL;
     int index = 0;
 
+    ackpacket[0] = 0; 
     strcpy(ackpacket, rxpacket);
 
     ptr = strtok(rxpacket, ":;"); // takes a list of delimiters
@@ -222,7 +223,7 @@ void Receiver::processReceived(char *rxpacket)
         if (strlen(strings[0]) == 1 && strings[0][0] == 'C')
         {
             uint16_t stateId = atoi(strings[1]);
-            bool newRelayState = strcasecmp(strings[2], "ON") == 0;
+            bool newRelayState = strcasecmp(strings[2], "on") == 0;
             setRelayState(newRelayState);
             delay(200);
             acksRemaining = 4;
