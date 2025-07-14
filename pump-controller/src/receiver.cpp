@@ -74,7 +74,7 @@ void Receiver::updateDisplay()
     }
 
     mDisplay.display.setCursor(10, 50);
-    mDisplay.display.printf("RSSI:%d SNR:%d PWR:%d", mLastRssi, mLastSnr, txPower);
+    mDisplay.display.printf("PW:%d RS:%d SR:%d ", txPower, mLastRssi, mLastSnr);
 
     mDisplay.display.display();
 }

@@ -84,7 +84,7 @@ void Controller::updateDisplay()
     mDisplay.display.printf("Status: %s", status);
 
     mDisplay.display.setCursor(10, 50);
-    mDisplay.display.printf("RSSI:%d SNR:%d PWR:%d", mLastRssi, mLastSnr, txPower);
+    mDisplay.display.printf("PW:%d RS:%d SR:%d ", txPower, mLastRssi, mLastSnr);
     
     mDisplay.display.display();
 }
@@ -516,10 +516,15 @@ void Controller::processReceived(char *rxpacket)
                 int power = atoi(strings[2]);
                 if(power != receiverTxPower)
                 {
+                    Serial.printf("Receiver tx power is %d but should be %d - sending config messasge to receiver.\n", power, receiverTxPower);
                     char msg[16];
                     ++mStateId;
                     sprintf(msg, "PWR:%d", receiverTxPower);
                     sendMessage(msg);
+                }
+                else
+                {
+                    Serial.printf("Receiver configuration matches expected configuration.");
                 }
             }
         }
