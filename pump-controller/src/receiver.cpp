@@ -57,10 +57,10 @@ void Receiver::updateDisplay()
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
 
     mDisplay.display.setCursor(10, 22);
-    mDisplay.display.printf("LM: %s", mLastMessage.substring(0, 12).c_str());
+    mDisplay.display.printf("Ack: %s", ackConfirmed ? "OK" : "WAIT");
 
     mDisplay.display.setCursor(10, 36);
-    mDisplay.display.printf("SIZE: %d", mLastMessageSize);
+    mDisplay.display.printf("Pend Acks: %d", acksRemaining);
 
     mDisplay.display.setCursor(10, 50);
     mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);

@@ -66,10 +66,15 @@ void Controller::updateDisplay()
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
 
     mDisplay.display.setCursor(10, 22);
-    mDisplay.display.printf("LM: %s", mLastMessage.substring(0, 12).c_str());
+    mDisplay.display.printf("Pending: %s", relayStateToString(requestedRelayState));
 
+    bool awaitingAck = relayState != requestedRelayState;
+    const char *status = lora_idle ? "IDLE" : "TX";
+    if (awaitingAck) {
+        status = "WAIT ACK";
+    }
     mDisplay.display.setCursor(10, 36);
-    mDisplay.display.printf("SIZE: %d", mLastMessageSize);
+    mDisplay.display.printf("Status: %s", status);
 
     mDisplay.display.setCursor(10, 50);
     mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);
