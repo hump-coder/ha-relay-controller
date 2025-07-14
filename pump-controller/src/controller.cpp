@@ -369,20 +369,27 @@ void Controller::processReceived(char *rxpacket)
         {
             uint16_t stateId = atoi(strings[1]);
             RelayState confirmedRelayState = (strcasecmp(strings[2], "on") == 0) ? RelayState::ON : RelayState::OFF;
-            
-            if(relayState != requestedRelayState && mStateId == stateId && confirmedRelayState == requestedRelayState)
+
+            if(mStateId == stateId && confirmedRelayState == requestedRelayState)
             {
-                Serial.printf("Relay state confirmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON": "OFF");
-                relayState = confirmedRelayState;
-                //
-                // Increment state id to ensure we don't process acks for this message again.
-                //
-                ++mStateId;
-                publishState();
+                if(relayState != requestedRelayState)
+                {
+                    Serial.printf("Relay state confirmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON": "OFF");
+                    relayState = confirmedRelayState;
+                    //
+                    // Increment state id to ensure we don't process acks for this message again.
+                    //
+                    ++mStateId;
+                    publishState();
+                }
+                else
+                {
+                    Serial.println("Heartbeat ack received.");
+                }
                 sendAckReceived(stateId);
             }
             else
-            {                
+            {
                 Serial.printf("Skipping - likely an old ack expected stateid: %d, state: %s = %s.\n",mStateId , relayStateToString(confirmedRelayState).c_str(), strings[2]);
             }
         }
