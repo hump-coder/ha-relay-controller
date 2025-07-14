@@ -39,4 +39,7 @@
 // no further ON commands are received.
 #define DEFAULT_ON_TIME_SEC                         30
 
+// Default frequency in seconds to send a status update
+#define DEFAULT_STATUS_SEND_FREQ_SEC                60
+
 #endif

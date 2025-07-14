@@ -8,6 +8,7 @@
 #include "config.h"
 #include "display.h"
 #include "device-config.h"
+#include "settings.h"
 #include "controller.h"
 
 // #include <Wire.h>
@@ -212,6 +213,9 @@ void Controller::ensureMqtt() {
 }
 
 void Controller::setup() {
+    Settings::begin();
+    txPower = Settings::getInt(KEY_CTRL_TX_POWER, TX_OUTPUT_POWER);
+    statusSendFreqSec = Settings::getInt(KEY_CTRL_STATUS_FREQ, DEFAULT_STATUS_SEND_FREQ_SEC);
 
     Wire.begin(17, 18);
 
@@ -236,11 +240,10 @@ void Controller::setup() {
 
     Radio.Init( &RadioEvents );
     Radio.SetChannel( RF_FREQUENCY );
-    txPower = TX_OUTPUT_POWER;
     Radio.SetTxConfig( MODEM_LORA, txPower, 0, LORA_BANDWIDTH,
                                    LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                                    LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                                   true, 0, 0, LORA_IQ_INVERSION_ON, 3000 ); 
+                                   true, 0, 0, LORA_IQ_INVERSION_ON, 3000 );
 
 
     Radio.SetRxConfig( MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
@@ -304,7 +307,15 @@ void Controller::setTxPower(int power)
                                    LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
                                    true, 0, 0, LORA_IQ_INVERSION_ON, 3000 );
 
+    Settings::setInt(KEY_CTRL_TX_POWER, txPower);
+
     updateDisplay();
+}
+
+void Controller::setSendStatusFrequency(unsigned int freq)
+{
+    statusSendFreqSec = freq;
+    Settings::setInt(KEY_CTRL_STATUS_FREQ, statusSendFreqSec);
 }
 
 

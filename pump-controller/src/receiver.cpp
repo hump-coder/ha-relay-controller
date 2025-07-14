@@ -7,6 +7,7 @@
 #include "config.h"
 #include "display.h"
 #include "device-config.h"
+#include "settings.h"
 #include "receiver.h"
 
 // #include <Wire.h>
@@ -78,6 +79,10 @@ void Receiver::updateDisplay()
 
 void Receiver::setup()
 {
+    Settings::begin();
+    txPower = Settings::getInt(KEY_RX_TX_POWER, TX_OUTPUT_POWER);
+    statusSendFreqSec = Settings::getInt(KEY_RX_STATUS_FREQ, DEFAULT_STATUS_SEND_FREQ_SEC);
+
     Serial.println("Setting up");
     Serial.begin(115200);
 
@@ -131,7 +136,6 @@ void Receiver::setup()
 
     Radio.Init(&RadioEvents);
     Radio.SetChannel(RF_FREQUENCY);
-    txPower = TX_OUTPUT_POWER;
     Radio.SetTxConfig(MODEM_LORA, txPower, 0, LORA_BANDWIDTH,
                       LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                       LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
@@ -227,7 +231,14 @@ void Receiver::setTxPower(int power)
                       LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                       LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
                       true, 0, 0, LORA_IQ_INVERSION_ON, 3000);
+    Settings::setInt(KEY_RX_TX_POWER, txPower);
     updateDisplay();
+}
+
+void Receiver::setSendStatusFrequency(unsigned int freq)
+{
+    statusSendFreqSec = freq;
+    Settings::setInt(KEY_RX_STATUS_FREQ, statusSendFreqSec);
 }
 
 void Receiver::processReceived(char *rxpacket)
