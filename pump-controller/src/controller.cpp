@@ -139,9 +139,13 @@ void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
     "}"
 
 void Controller::sendDiscovery() {
-    const char *discoveryTopic = "homeassistant/switch/pump_station/config";
-    String payload = "{\"name\":\"Pump\",\"command_topic\":\"pump_station/switch/set\",\"state_topic\":\"pump_station/switch/state\",\"payload_on\":\"ON\",\"payload_off\":\"OFF\",\"unique_id\":\"pump_station\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
-    mqttClient.publish(discoveryTopic, payload.c_str(), true);
+    const char *switchTopic = "homeassistant/switch/pump_station/config";
+    const char *switchPayload = "{\"name\":\"Pump\",\"command_topic\":\"pump_station/switch/set\",\"state_topic\":\"pump_station/switch/state\",\"payload_on\":\"ON\",\"payload_off\":\"OFF\",\"unique_id\":\"pump_station\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
+    mqttClient.publish(switchTopic, switchPayload, true);
+
+    const char *pulseTopic = "homeassistant/number/pump_station_pulse/config";
+    const char *pulsePayload = "{\"name\":\"Pump Pulse\",\"command_topic\":\"pump_station/switch/pulse\",\"min\":1,\"max\":3600,\"step\":1,\"unit_of_measurement\":\"s\",\"unique_id\":\"pump_station_pulse\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
+    mqttClient.publish(pulseTopic, pulsePayload, true);
 }
 
 
