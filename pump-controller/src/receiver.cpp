@@ -42,9 +42,11 @@ Receiver::Receiver(Display &display, bool enableWifi) : mDisplay(display), mWifi
     mLastRssi = 0;
     mLastSnr = 0;
     mRelayState = false;
+    mPulseMode = false;
     acksRemaining = 0;
     ackStateId = 0;
     ackConfirmed = true;
+    lastStatusSend = 0;
 }
 
 void Receiver::updateDisplay()
@@ -178,7 +180,15 @@ void Receiver::sendHello()
     Serial.println("hello sent.");
 }
 
-unsigned long lastUpdate = 0;
+void Receiver::sendStatus()
+{
+    int battery = 77;
+    sprintf(txpacket, "S:%d:%d:%d:%d:%d:%d", txPower, mLastRssi, mLastSnr, mRelayState ? 1 : 0, mPulseMode ? 1 : 0, battery);
+    Serial.printf("Sending status \"%s\", length %d\r\n", txpacket, strlen(txpacket));
+    lora_idle = false;
+    Radio.Send((uint8_t *)txpacket, strlen(txpacket));
+    Serial.println("status sent.");
+}
 
 unsigned long lastScreenUpdate = 0;
 
@@ -199,6 +209,12 @@ void Receiver::loop()
         }
 
         lastScreenUpdate = millis();
+    }
+
+    if(lora_idle && millis() - lastStatusSend > statusSendFreqSec * 1000UL)
+    {
+        sendStatus();
+        lastStatusSend = millis();
     }
 
     // if(lora_idle == false)
@@ -284,7 +300,11 @@ void Receiver::processReceived(char *rxpacket)
     {
         uint16_t stateId = atoi(strings[1]);
         if(strcasecmp(strings[2], "status") == 0) {
-            sendHello();
+            sendStatus();
+            return;
+        } else if(strcasecmp(strings[2], "freq") == 0 && index >= 4) {
+            int freq = atoi(strings[3]);
+            setSendStatusFrequency(freq);
             return;
         } else if(strcasecmp(strings[2], "pwr") == 0 && index >= 4) {
             int power = atoi(strings[3]);
@@ -299,6 +319,7 @@ void Receiver::processReceived(char *rxpacket)
             } else if(newRelayState) {
                 onTimeSec = 0;
             }
+            mPulseMode = strcasecmp(strings[2], "pulse") == 0;
             setRelayState(newRelayState);
         }
         delay(200);

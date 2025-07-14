@@ -42,6 +42,8 @@ Controller::Controller(Display &display) : mDisplay(display), mqttClient(espClie
     mStateId = 1;
     relayState = RelayState::OFF;
     requestedRelayState = RelayState::UNKNOWN;
+    pulseMode = false;
+    lastStatusPublish = 0;
 }
 
 String relayStateToString(RelayState state)
@@ -93,6 +95,26 @@ void Controller::publishState() {
     updateDisplay();
 }
 
+void Controller::publishControllerStatus() {
+    char payload[128];
+    snprintf(payload, sizeof(payload),
+             "{\"power\":%d,\"rssi\":%d,\"snr\":%d,\"state\":\"%s\",\"mode\":\"%s\",\"battery\":77}",
+             txPower, mLastRssi, mLastSnr,
+             relayStateToString(relayState).c_str(),
+             pulseMode ? "pulse" : "normal");
+    mqttClient.publish("pump_station/status/controller", payload, true);
+}
+
+void Controller::publishReceiverStatus(int power, int rssi, int snr, bool relay, bool pulse, int battery) {
+    char payload[128];
+    snprintf(payload, sizeof(payload),
+             "{\"power\":%d,\"rssi\":%d,\"snr\":%d,\"state\":\"%s\",\"mode\":\"%s\",\"battery\":%d}",
+             power, rssi, snr,
+             relay ? "ON" : "OFF",
+             pulse ? "pulse" : "normal", battery);
+    mqttClient.publish("pump_station/status/receiver", payload, true);
+}
+
 void controllerMqttCallback(char *topic, byte *payload, unsigned int length)
 {
   controllerInstance->mqttCallback(topic, payload, length);
@@ -137,6 +159,19 @@ void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
         sendMessage(msg);
         receiverTxPower = pwr;
         Settings::setInt(KEY_RX_TX_POWER, receiverTxPower);
+    } else if(strcmp(topic, "pump_station/status_freq/controller/set") == 0) {
+        unsigned int f = cmd.toInt();
+        if(f == 0) f = DEFAULT_STATUS_SEND_FREQ_SEC;
+        setSendStatusFrequency(f);
+    } else if(strcmp(topic, "pump_station/status_freq/receiver/set") == 0) {
+        unsigned int f = cmd.toInt();
+        if(f == 0) f = DEFAULT_STATUS_SEND_FREQ_SEC;
+        char msg[16];
+        ++mStateId;
+        sprintf(msg, "FREQ:%u", f);
+        sendMessage(msg);
+        receiverStatusFreqSec = f;
+        Settings::setInt(KEY_RX_STATUS_FREQ, receiverStatusFreqSec);
     }
 }
 
@@ -212,6 +247,8 @@ void Controller::ensureMqtt() {
     mqttClient.subscribe("pump_station/switch/pulse");
     mqttClient.subscribe("pump_station/tx_power/controller/set");
     mqttClient.subscribe("pump_station/tx_power/receiver/set");
+    mqttClient.subscribe("pump_station/status_freq/controller/set");
+    mqttClient.subscribe("pump_station/status_freq/receiver/set");
 }
 
 void Controller::setup() {
@@ -219,6 +256,7 @@ void Controller::setup() {
     txPower = Settings::getInt(KEY_CTRL_TX_POWER, TX_OUTPUT_POWER);
     receiverTxPower = Settings::getInt(KEY_RX_TX_POWER, TX_OUTPUT_POWER);
     statusSendFreqSec = Settings::getInt(KEY_CTRL_STATUS_FREQ, DEFAULT_STATUS_SEND_FREQ_SEC);
+    receiverStatusFreqSec = Settings::getInt(KEY_RX_STATUS_FREQ, DEFAULT_STATUS_SEND_FREQ_SEC);
 
     Wire.begin(17, 18);
 
@@ -268,6 +306,12 @@ void Controller::setup() {
     ensureMqtt();
     sendDiscovery();
     publishState();
+    {
+        char msg[16];
+        ++mStateId;
+        sprintf(msg, "FREQ:%u", receiverStatusFreqSec);
+        sendMessage(msg);
+    }
     sendMessage("STATUS");
 
     Serial.println("Init MQTT - complete");
@@ -330,6 +374,7 @@ void Controller::setRelayState(bool pumpOn, unsigned int onTime, bool pulse)
   if(pumpOn) {
       onTimeSec = onTime;
   }
+  pulseMode = pumpOn && pulse;
   relayState = RelayState::UNKNOWN;
 
   char msg[32];
@@ -411,6 +456,10 @@ void Controller::loop() {
     if (!mqttClient.connected()) {
         ensureMqtt();
     }
+    if(millis() - lastStatusPublish > statusSendFreqSec * 1000UL) {
+        publishControllerStatus();
+        lastStatusPublish = millis();
+    }
     mqttClient.loop();
 }
 
@@ -474,6 +523,18 @@ void Controller::processReceived(char *rxpacket)
                 }
             }
         }
+        else if(strlen(strings[0]) == 1 && strings[0][0] == 'S')
+        {
+            if(index >= 7) {
+                int power = atoi(strings[1]);
+                int rssi = atoi(strings[2]);
+                int snr = atoi(strings[3]);
+                bool state = atoi(strings[4]);
+                bool pulse = atoi(strings[5]);
+                int battery = atoi(strings[6]);
+                publishReceiverStatus(power, rssi, snr, state, pulse, battery);
+            }
+        }
     }
 }
 
@@ -491,6 +552,9 @@ void Controller::OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t
     memcpy(rxpacket, payload, size);
     rxpacket[size] = '\0';
     Radio.Sleep();
+
+    mLastRssi = rssi;
+    mLastSnr = snr;
 
     Serial.printf("\r\nreceived packet \"%s\" with Rssi %d , length %d\r\n", rxpacket, rssi, size);
     Serial.println("wait to send next packet");
