@@ -4,6 +4,7 @@
 #include "device.h"
 #include "display.h"
 #include "device-config.h"
+#include "settings.h"
 
 class Receiver : public Device
 {
@@ -18,6 +19,8 @@ class Receiver : public Device
 
     int getTxPower() const { return txPower; }
     void setTxPower(int power);
+    void setSendStatusFrequency(unsigned int freq);
+    unsigned int getSendStatusFrequency() const { return statusSendFreqSec; }
 
     private:
     void updateDisplay();
@@ -38,6 +41,7 @@ class Receiver : public Device
     uint16_t ackStateId;
     bool ackConfirmed;
     int txPower = TX_OUTPUT_POWER;
+    unsigned int statusSendFreqSec = DEFAULT_STATUS_SEND_FREQ_SEC;
     void sendAck(char *rxpacket);
     void setRelayState(bool newRelayState);
     void processReceived(char *rxpacket);
