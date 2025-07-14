@@ -243,6 +243,15 @@ void Receiver::processReceived(char *rxpacket)
 
 void Receiver::OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
+    if (size >= BUFFER_SIZE)
+    {
+        //
+        // We can only process packets up to BUFFER_SIZE - 1 or we'll buffer overflow.
+        // Just truncate - this allows for forward compatability with larger messages.
+        //
+        size = BUFFER_SIZE - 1;
+    }
+
     memcpy(rxpacket, payload, size);
     rxpacket[size] = '\0';
     Radio.Sleep();

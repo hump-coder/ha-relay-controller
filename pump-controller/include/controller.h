@@ -5,10 +5,8 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-
 #include "device.h"
 #include "display.h"
-
 
 enum RelayState
 {
@@ -19,21 +17,20 @@ enum RelayState
 
 class Controller : public Device
 {
-    public:
+public:
     Controller(Display &display);
 
     void setup() override;
     void loop() override;
 
-
-    void mqttCallback(char *topic, byte *payload, unsigned int length) ;
-    void OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr );
+    void mqttCallback(char *topic, byte *payload, unsigned int length);
+    void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr);
     void OnTxDone();
     void OnTxTimeout();
- 
+
     void processReceived(char *rxpacket);
 
-    private:
+private:
     Display &mDisplay;
     String mLastMessage;
     uint16_t mLastMessageSize;
@@ -41,38 +38,30 @@ class Controller : public Device
     int8_t mLastSnr;
     uint16_t mStateId;
     RelayState relayState;
-    RelayState requestedRelayState;    
+    RelayState requestedRelayState;
 
-char txpacket[BUFFER_SIZE];
-char rxpacket[BUFFER_SIZE];
+    char txpacket[BUFFER_SIZE];
+    char rxpacket[BUFFER_SIZE];
 
-double txNumber;
+    double txNumber;
 
-bool lora_idle=true;
+    bool lora_idle = true;
 
-RadioEvents_t RadioEvents;
+    RadioEvents_t RadioEvents;
 
-WiFiClient espClient;
-PubSubClient mqttClient;//(espClient);
-void ensureMqtt();
-void updateDisplay();
-void sendMessage(const char *msg);
-void sendAckReceived(uint16_t stateId);
-void setRelayState(bool pumpOn);
+    WiFiClient espClient;
+    PubSubClient mqttClient; //(espClient);
+    void ensureMqtt();
+    void updateDisplay();
+    void sendMessage(const char *msg);
+    void sendAckReceived(uint16_t stateId);
+    void setRelayState(bool pumpOn);
 
+    unsigned long lastSend = 0;
 
-
-
-
-
-unsigned long lastSend = 0;
-
-
-
-//unsigned int messageNumnber = 0;
-void publishState();
-void sendDiscovery();
+    // unsigned int messageNumnber = 0;
+    void publishState();
+    void sendDiscovery();
 };
 
-
-#endif //PUMP_CONTROLLER_H
+#endif // PUMP_CONTROLLER_H

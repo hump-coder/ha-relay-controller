@@ -366,13 +366,20 @@ void Controller::processReceived(char *rxpacket)
 
 void Controller::OnRxDone( uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr )
 {
-    //Rssi=rssi;
-    //rxSize=size;
-    memcpy(rxpacket, payload, size );
-    rxpacket[size]='\0';
+    if (size >= BUFFER_SIZE)
+    {
+        //
+        // We can only process packets up to BUFFER_SIZE - 1 or we'll buffer overflow.
+        // Just truncate - this allows for forward compatability with larger messages.
+        //
+        size = BUFFER_SIZE - 1;
+    }
+
+    memcpy(rxpacket, payload, size);
+    rxpacket[size] = '\0';
     Radio.Sleep();
 
-    Serial.printf("\r\nreceived packet \"%s\" with Rssi %d , length %d\r\n",rxpacket,rssi,size);
+    Serial.printf("\r\nreceived packet \"%s\" with Rssi %d , length %d\r\n", rxpacket, rssi, size);
     Serial.println("wait to send next packet");
 
     lora_idle = true;
