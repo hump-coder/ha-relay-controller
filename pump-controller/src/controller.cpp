@@ -39,7 +39,7 @@ Controller::Controller(Display &display) : mDisplay(display), mqttClient(espClie
     mLastRssi = 0;
     mLastSnr = 0;
     mStateId = 1;
-    relayState = RelayState::UNKNOWN;
+    relayState = RelayState::OFF;
     requestedRelayState = RelayState::UNKNOWN;
 }
 

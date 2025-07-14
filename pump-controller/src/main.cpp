@@ -5,7 +5,7 @@
 #include "receiver.h"
 #include "display.h"
 
-bool isController = false;
+bool isController = true;
 bool enableWifi = isController;
 
 Device *device = 0;

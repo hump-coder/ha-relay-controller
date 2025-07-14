@@ -52,7 +52,7 @@ void Receiver::updateDisplay()
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
     mDisplay.display.setTextColor(SSD1306_WHITE);
     mDisplay.display.setCursor(10, 0);
-    mDisplay.display.printf("Receiver - relay: ");
+    mDisplay.display.printf("Receiver: ");
     mDisplay.display.println(mRelayState ? "ON" : "OFF");
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
 
