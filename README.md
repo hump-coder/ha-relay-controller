@@ -1,6 +1,6 @@
 # ha-relay-controller
 
-This repository contains a PlatformIO project for a LoRa based pump control system using Heltec WiFi LoRa 32 V3 boards. Two identical devices communicate over LoRa and can operate in one of two roles controlled by the `isController` flag in `pump-controller/src/main.cpp`.
+A PlatformIO project for a LoRa based pump control system using Heltec WiFi LoRa 32 V3 boards. Two identical devices communicate over LoRa and can operate in one of two roles controlled by the `isController` flag in `pump-controller/src/main.cpp`.
 
 - **Controller mode** (`isController = true`): connects to WiFi and MQTT, sends `ON`/`OFF` messages and processes acknowledgements.
 - **Receiver mode** (`isController = false`): listens for LoRa commands and toggles a relay. WiFi is disabled by default.
