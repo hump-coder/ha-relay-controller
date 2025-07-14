@@ -235,6 +235,18 @@ void Controller::sendMessage(const char *msg)
         Serial.println("packet sent.");   
 }
 
+void Controller::sendAckReceived(uint16_t stateId)
+{
+        sprintf(txpacket, "A:%u", stateId);
+
+        Serial.printf("Sending ack receipt \"%s\", length %d\r\n", txpacket, strlen(txpacket));
+
+        lora_idle = false;
+        Radio.Send((uint8_t *)txpacket, strlen(txpacket));
+
+        Serial.println("ack receipt sent.");
+}
+
 
 void Controller::setRelayState(bool pumpOn)
 {
@@ -342,6 +354,7 @@ void Controller::processReceived(char *rxpacket)
                 //
                 ++mStateId;
                 publishState();
+                sendAckReceived(stateId);
             }
             else
             {                

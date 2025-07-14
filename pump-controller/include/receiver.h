@@ -27,6 +27,8 @@ class Receiver : public Device
     int8_t mLastSnr;
     bool mRelayState;
     int acksRemaining;
+    uint16_t ackStateId;
+    bool ackConfirmed;
     void sendAck(char *rxpacket);
     void setRelayState(bool newRelayState);
     void processReceived(char *rxpacket);

@@ -44,6 +44,8 @@ Receiver::Receiver(Display &display, bool enableWifi) : mDisplay(display), mWifi
     mLastSnr = 0;
     mRelayState = false;
     acksRemaining = 0;
+    ackStateId = 0;
+    ackConfirmed = true;
 }
 
 void Receiver::updateDisplay()
@@ -165,7 +167,7 @@ void Receiver::loop()
     {
         updateDisplay();
 
-        if (acksRemaining)
+        if (!ackConfirmed && acksRemaining)
         {
             --acksRemaining;
             delay(100);
@@ -218,16 +220,24 @@ void Receiver::processReceived(char *rxpacket)
         ptr = strtok(NULL, ":;"); // takes a list of delimiters
     }
 
-    if (index >= 3)
+    if (index >= 2 && strlen(strings[0]) == 1 && strings[0][0] == 'A')
     {
-        if (strlen(strings[0]) == 1 && strings[0][0] == 'C')
+        uint16_t stateId = atoi(strings[1]);
+        if(stateId == ackStateId)
         {
-            uint16_t stateId = atoi(strings[1]);
-            bool newRelayState = strcasecmp(strings[2], "on") == 0;
-            setRelayState(newRelayState);
-            delay(200);
-            acksRemaining = 4;
+            ackConfirmed = true;
+            acksRemaining = 0;
         }
+    }
+    else if (index >= 3 && strlen(strings[0]) == 1 && strings[0][0] == 'C')
+    {
+        uint16_t stateId = atoi(strings[1]);
+        bool newRelayState = strcasecmp(strings[2], "on") == 0;
+        setRelayState(newRelayState);
+        delay(200);
+        ackStateId = stateId;
+        ackConfirmed = false;
+        acksRemaining = 4;
     }
 }
 

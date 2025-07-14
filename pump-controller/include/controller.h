@@ -57,6 +57,7 @@ PubSubClient mqttClient;//(espClient);
 void ensureMqtt();
 void updateDisplay();
 void sendMessage(const char *msg);
+void sendAckReceived(uint16_t stateId);
 void setRelayState(bool pumpOn);
 
 
