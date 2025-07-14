@@ -359,7 +359,14 @@ void Controller::loop() {
     }
 
     if(heartbeatEnabled && lora_idle && requestedRelayState == RelayState::ON && relayState == RelayState::ON) {
-        unsigned long interval = (onTimeSec * 1000UL) / 2;
+        unsigned long interval = (onTimeSec * 1000UL) / 4;
+        unsigned long minimumInterval = 5000;
+        
+        if(interval < minimumInterval)
+        {
+            interval = minimumInterval;
+        }
+        
         if(millis() - nextOnSend >= interval) {
             char msg[32];
             sprintf(msg, "ON:%u", onTimeSec);
