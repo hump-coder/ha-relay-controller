@@ -81,7 +81,7 @@ void Controller::updateDisplay()
     mDisplay.display.printf("Status: %s", status);
 
     mDisplay.display.setCursor(10, 50);
-    mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);
+    mDisplay.display.printf("RSSI:%d SNR:%d PWR:%d", mLastRssi, mLastSnr, txPower);
     
     mDisplay.display.display();
 }
@@ -124,6 +124,16 @@ void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
         if(t == 0) t = DEFAULT_ON_TIME_SEC;
         pulseRelay(t);
         publishState();
+    } else if(strcmp(topic, "pump_station/tx_power/controller/set") == 0) {
+        int pwr = cmd.toInt();
+        setTxPower(pwr);
+    } else if(strcmp(topic, "pump_station/tx_power/receiver/set") == 0) {
+        int pwr = cmd.toInt();
+        if(pwr < MIN_TX_OUTPUT_POWER) pwr = MIN_TX_OUTPUT_POWER;
+        char msg[16];
+        ++mStateId;
+        sprintf(msg, "PWR:%d", pwr);
+        sendMessage(msg);
     }
 }
 
@@ -146,6 +156,14 @@ void Controller::sendDiscovery() {
     const char *pulseTopic = "homeassistant/number/pump_station_pulse/config";
     const char *pulsePayload = "{\"name\":\"Pump Pulse\",\"command_topic\":\"pump_station/switch/pulse\",\"min\":1,\"max\":3600,\"step\":1,\"unit_of_measurement\":\"s\",\"unique_id\":\"pump_station_pulse\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
     mqttClient.publish(pulseTopic, pulsePayload, true);
+
+    const char *ctrlPowerTopic = "homeassistant/number/pump_station_ctrl_power/config";
+    const char *ctrlPowerPayload = "{\"name\":\"Controller Tx Power\",\"command_topic\":\"pump_station/tx_power/controller/set\",\"min\":0,\"max\":22,\"step\":1,\"unit_of_measurement\":\"dBm\",\"unique_id\":\"pump_station_ctrl_power\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
+    mqttClient.publish(ctrlPowerTopic, ctrlPowerPayload, true);
+
+    const char *rxPowerTopic = "homeassistant/number/pump_station_rx_power/config";
+    const char *rxPowerPayload = "{\"name\":\"Receiver Tx Power\",\"command_topic\":\"pump_station/tx_power/receiver/set\",\"min\":0,\"max\":22,\"step\":1,\"unit_of_measurement\":\"dBm\",\"unique_id\":\"pump_station_rx_power\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
+    mqttClient.publish(rxPowerTopic, rxPowerPayload, true);
 }
 
 
@@ -189,6 +207,8 @@ void Controller::ensureMqtt() {
     }
     mqttClient.subscribe("pump_station/switch/set");
     mqttClient.subscribe("pump_station/switch/pulse");
+    mqttClient.subscribe("pump_station/tx_power/controller/set");
+    mqttClient.subscribe("pump_station/tx_power/receiver/set");
 }
 
 void Controller::setup() {
@@ -216,7 +236,8 @@ void Controller::setup() {
 
     Radio.Init( &RadioEvents );
     Radio.SetChannel( RF_FREQUENCY );
-    Radio.SetTxConfig( MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
+    txPower = TX_OUTPUT_POWER;
+    Radio.SetTxConfig( MODEM_LORA, txPower, 0, LORA_BANDWIDTH,
                                    LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                                    LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
                                    true, 0, 0, LORA_IQ_INVERSION_ON, 3000 ); 
@@ -268,6 +289,22 @@ void Controller::sendAckReceived(uint16_t stateId)
         Radio.Send((uint8_t *)txpacket, strlen(txpacket));
 
         Serial.println("ack receipt sent.");
+}
+
+void Controller::setTxPower(int power)
+{
+    if(power < MIN_TX_OUTPUT_POWER)
+        power = MIN_TX_OUTPUT_POWER;
+    if(power > 22)
+        power = 22;
+
+    txPower = power;
+    Radio.SetTxConfig( MODEM_LORA, txPower, 0, LORA_BANDWIDTH,
+                                   LORA_SPREADING_FACTOR, LORA_CODINGRATE,
+                                   LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
+                                   true, 0, 0, LORA_IQ_INVERSION_ON, 3000 );
+
+    updateDisplay();
 }
 
 
