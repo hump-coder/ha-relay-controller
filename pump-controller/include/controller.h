@@ -50,6 +50,7 @@ private:
 
     double txNumber;
     int txPower = TX_OUTPUT_POWER;
+    int receiverTxPower = TX_OUTPUT_POWER;
 
     bool lora_idle = true;
 

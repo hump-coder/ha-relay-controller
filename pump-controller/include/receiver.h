@@ -23,6 +23,7 @@ class Receiver : public Device
     unsigned int getSendStatusFrequency() const { return statusSendFreqSec; }
 
     private:
+    void sendHello();
     void updateDisplay();
     void setIdle();
     bool mWifiEnabled=false;

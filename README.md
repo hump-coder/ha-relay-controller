@@ -34,3 +34,9 @@ The controller publishes MQTT discovery messages for easy integration with Home 
 It exposes a `switch` entity for basic on/off control and `number` entities named
 `Pump Pulse`, `Controller Tx Power` and `Receiver Tx Power`.
 The controller enforces a minimum transmit power defined by `MIN_TX_OUTPUT_POWER`.
+
+On boot the controller sends a `STATUS` request to the receiver. The receiver
+responds with a `HELLO` message containing its current configuration (currently
+just transmit power). If the values differ from those the controller has
+persisted from previous MQTT commands it will resend the appropriate
+configuration messages.
