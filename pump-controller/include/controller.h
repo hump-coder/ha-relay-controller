@@ -7,6 +7,7 @@
 
 #include "device.h"
 #include "display.h"
+#include "device-config.h"
 
 enum RelayState
 {
@@ -55,9 +56,10 @@ private:
     void updateDisplay();
     void sendMessage(const char *msg);
     void sendAckReceived(uint16_t stateId);
-    void setRelayState(bool pumpOn);
+    void setRelayState(bool pumpOn, unsigned int onTime = DEFAULT_ON_TIME_SEC);
 
-    unsigned long lastSend = 0;
+    unsigned long nextOnSend = 0;
+    unsigned int onTimeSec = DEFAULT_ON_TIME_SEC;
 
     // unsigned int messageNumnber = 0;
     void publishState();

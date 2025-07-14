@@ -60,7 +60,15 @@ void Receiver::updateDisplay()
     mDisplay.display.printf("Ack: %s", ackConfirmed ? "OK" : "WAIT");
 
     mDisplay.display.setCursor(10, 36);
-    mDisplay.display.printf("Pend Acks: %d", acksRemaining);
+    if(mRelayState) {
+        unsigned long remaining = 0;
+        if(offTime > millis()) {
+            remaining = (offTime - millis()) / 1000;
+        }
+        mDisplay.display.printf("Time: %lus", remaining);
+    } else {
+        mDisplay.display.printf("Pend Acks: %d", acksRemaining);
+    }
 
     mDisplay.display.setCursor(10, 50);
     mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);
@@ -158,6 +166,9 @@ unsigned long lastScreenUpdate = 0;
 
 void Receiver::loop()
 {
+    if(mRelayState && offTime && millis() > offTime) {
+        setRelayState(false);
+    }
     if (millis() - lastScreenUpdate > 1000)
     {
         updateDisplay();
@@ -196,6 +207,11 @@ void Receiver::sendAck(char *packet)
 void Receiver::setRelayState(bool newRelayState)
 {
     mRelayState = newRelayState;
+    if(newRelayState) {
+        offTime = millis() + (unsigned long)onTimeSec * 1000UL;
+    } else {
+        offTime = 0;
+    }
 }
 
 void Receiver::processReceived(char *rxpacket)
@@ -228,6 +244,12 @@ void Receiver::processReceived(char *rxpacket)
     {
         uint16_t stateId = atoi(strings[1]);
         bool newRelayState = strcasecmp(strings[2], "on") == 0;
+        if(newRelayState && index >= 4) {
+            onTimeSec = atoi(strings[3]);
+            if(onTimeSec == 0) onTimeSec = DEFAULT_ON_TIME_SEC;
+        } else if(newRelayState) {
+            onTimeSec = DEFAULT_ON_TIME_SEC;
+        }
         setRelayState(newRelayState);
         delay(200);
         ackStateId = stateId;

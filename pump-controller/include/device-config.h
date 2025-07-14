@@ -34,4 +34,8 @@
 #define RX_TIMEOUT_VALUE                            1000
 #define BUFFER_SIZE                                 30 // Define the payload size here
 
+// Default number of seconds the receiver will remain ON if
+// no further ON commands are received.
+#define DEFAULT_ON_TIME_SEC                         180
+
 #endif

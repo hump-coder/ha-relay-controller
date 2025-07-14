@@ -66,7 +66,11 @@ void Controller::updateDisplay()
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
 
     mDisplay.display.setCursor(10, 22);
-    mDisplay.display.printf("Pending: %s", relayStateToString(requestedRelayState));
+    if(requestedRelayState == RelayState::ON) {
+        mDisplay.display.printf("Dur: %us", onTimeSec);
+    } else {
+        mDisplay.display.printf("Pending: %s", relayStateToString(requestedRelayState));
+    }
 
     bool awaitingAck = relayState != requestedRelayState;
     const char *status = lora_idle ? "IDLE" : "TX";
@@ -102,10 +106,16 @@ void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
     for (unsigned int i = 0; i < length; i++) {
         cmd += (char)payload[i];
     }
-    if (cmd == "ON") {
-        setRelayState(true);    
-    } else if (cmd == "OFF") {
-        setRelayState(false);        
+    if (cmd.startsWith("ON")) {
+        int idx = cmd.indexOf(":");
+        unsigned int t = DEFAULT_ON_TIME_SEC;
+        if(idx > 0) {
+            t = cmd.substring(idx+1).toInt();
+            if(t == 0) t = DEFAULT_ON_TIME_SEC;
+        }
+        setRelayState(true, t);
+    } else if (cmd.startsWith("OFF")) {
+        setRelayState(false);
     }
 
     publishState();
@@ -250,43 +260,37 @@ void Controller::sendAckReceived(uint16_t stateId)
 }
 
 
-void Controller::setRelayState(bool pumpOn)
+void Controller::setRelayState(bool pumpOn, unsigned int onTime)
 {
   ++mStateId;
   requestedRelayState = pumpOn ? RelayState::ON : RelayState::OFF;
-  relayState = RelayState::UNKNOWN;  
-  sendMessage(pumpOn ?"ON" : "OFF");
+  if(pumpOn) {
+      onTimeSec = onTime;
+  }
+  relayState = RelayState::UNKNOWN;
+
+  char msg[32];
+  if(pumpOn) {
+      sprintf(msg, "ON:%u", onTimeSec);
+      nextOnSend = millis();
+  } else {
+      sprintf(msg, "OFF");
+  }
+
+  sendMessage(msg);
 }
 
 
 void Controller::loop() {
 
-    if(lora_idle && millis() - lastSend > 5000)
-    {
-        if(requestedRelayState != relayState)
-        {
-            // if(requestedRelayState == RelayState::ON)
-            // {
-            //    sendMessage("ON");
-            // }
-            // else
-            // {
-            //     sendMessage("OFF");
-            // }
+    if(lora_idle && requestedRelayState == RelayState::ON && relayState == RelayState::ON) {
+        unsigned long interval = (onTimeSec * 1000UL) / 2;
+        if(millis() - nextOnSend >= interval) {
+            char msg[32];
+            sprintf(msg, "ON:%u", onTimeSec);
+            sendMessage(msg);
+            nextOnSend = millis();
         }
-
-
-		// //txNumber += 0.01;
-		// sprintf(txpacket,"ON:%ld",++messageNumnber);  //start a package
-   
-		// Serial.printf("Sending packet \"%s\" , length %d\r\n",txpacket, strlen(txpacket));
-
-        // lora_idle = false;
-		// Radio.Send( (uint8_t *)txpacket, strlen(txpacket) ); //send the package out	
-       
-        Serial.print(".");
-
-      lastSend = millis();      
     }
     
 
@@ -347,7 +351,7 @@ void Controller::processReceived(char *rxpacket)
             uint16_t stateId = atoi(strings[1]);
             RelayState confirmedRelayState = (strcasecmp(strings[2], "on") == 0) ? RelayState::ON : RelayState::OFF;
             
-            if(mStateId == stateId && confirmedRelayState == requestedRelayState)
+            if(relayState != requestedRelayState && mStateId == stateId && confirmedRelayState == requestedRelayState)
             {
                 Serial.printf("Relay state confirmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON": "OFF");
                 relayState = confirmedRelayState;
