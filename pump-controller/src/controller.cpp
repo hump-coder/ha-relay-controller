@@ -202,6 +202,14 @@ void Controller::sendDiscovery() {
     const char *rxPowerTopic = "homeassistant/number/pump_station_rx_power/config";
     const char *rxPowerPayload = "{\"name\":\"Receiver Tx Power\",\"command_topic\":\"pump_station/tx_power/receiver/set\",\"min\":0,\"max\":22,\"step\":1,\"unit_of_measurement\":\"dBm\",\"unique_id\":\"pump_station_rx_power\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
     mqttClient.publish(rxPowerTopic, rxPowerPayload, true);
+
+    const char *ctrlStatusTopic = "homeassistant/sensor/pump_station_ctrl_status/config";
+    const char *ctrlStatusPayload = "{\"name\":\"Controller Status\",\"state_topic\":\"pump_station/status/controller\",\"value_template\":\"{{ value_json.state }}\",\"json_attributes_topic\":\"pump_station/status/controller\",\"unique_id\":\"pump_station_ctrl_status\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
+    mqttClient.publish(ctrlStatusTopic, ctrlStatusPayload, true);
+
+    const char *rxStatusTopic = "homeassistant/sensor/pump_station_rx_status/config";
+    const char *rxStatusPayload = "{\"name\":\"Receiver Status\",\"state_topic\":\"pump_station/status/receiver\",\"value_template\":\"{{ value_json.state }}\",\"json_attributes_topic\":\"pump_station/status/receiver\",\"unique_id\":\"pump_station_rx_status\",\"device\":{\"identifiers\":[\"pump_station\"],\"name\":\"Pump Controller\",\"model\":\"Heltec WiFi LoRa 32 V3\",\"manufacturer\":\"Heltec\"}}";
+    mqttClient.publish(rxStatusTopic, rxStatusPayload, true);
 }
 
 
