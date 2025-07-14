@@ -246,9 +246,10 @@ void Receiver::processReceived(char *rxpacket)
         bool newRelayState = strcasecmp(strings[2], "on") == 0;
         if(newRelayState && index >= 4) {
             onTimeSec = atoi(strings[3]);
-            if(onTimeSec == 0) onTimeSec = DEFAULT_ON_TIME_SEC;
         } else if(newRelayState) {
-            onTimeSec = DEFAULT_ON_TIME_SEC;
+            // If no duration is provided, default to 0 seconds which will
+            // cause the relay to turn off immediately.
+            onTimeSec = 0;
         }
         setRelayState(newRelayState);
         delay(200);

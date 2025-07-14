@@ -57,9 +57,12 @@ private:
     void sendMessage(const char *msg);
     void sendAckReceived(uint16_t stateId);
     void setRelayState(bool pumpOn, unsigned int onTime = DEFAULT_ON_TIME_SEC);
+    void pulseRelay(unsigned int onTime);
 
     unsigned long nextOnSend = 0;
     unsigned int onTimeSec = DEFAULT_ON_TIME_SEC;
+    bool heartbeatEnabled = true;
+    unsigned long autoOffTime = 0;
 
     // unsigned int messageNumnber = 0;
     void publishState();
