@@ -243,12 +243,13 @@ void Receiver::processReceived(char *rxpacket)
     else if (index >= 3 && strlen(strings[0]) == 1 && strings[0][0] == 'C')
     {
         uint16_t stateId = atoi(strings[1]);
-        bool newRelayState = strcasecmp(strings[2], "on") == 0;
+        bool newRelayState = false;
+        if(strcasecmp(strings[2], "on") == 0 || strcasecmp(strings[2], "pulse") == 0) {
+            newRelayState = true;
+        }
         if(newRelayState && index >= 4) {
             onTimeSec = atoi(strings[3]);
         } else if(newRelayState) {
-            // If no duration is provided, default to 0 seconds which will
-            // cause the relay to turn off immediately.
             onTimeSec = 0;
         }
         setRelayState(newRelayState);

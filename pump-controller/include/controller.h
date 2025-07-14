@@ -56,7 +56,7 @@ private:
     void updateDisplay();
     void sendMessage(const char *msg);
     void sendAckReceived(uint16_t stateId);
-    void setRelayState(bool pumpOn, unsigned int onTime = DEFAULT_ON_TIME_SEC);
+    void setRelayState(bool pumpOn, unsigned int onTime = DEFAULT_ON_TIME_SEC, bool pulse = false);
     void pulseRelay(unsigned int onTime);
 
     unsigned long nextOnSend = 0;

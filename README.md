@@ -24,7 +24,7 @@ Flash the compiled firmware to two boards. Set `isController` as required before
 ### MQTT Topics
 
 - `pump_station/switch/set` – payload `ON[:seconds]` or `OFF` to control the relay. If `seconds` is omitted the controller uses `DEFAULT_ON_TIME_SEC`.
-- `pump_station/switch/pulse` – payload is a number of seconds to turn the relay on once. The controller automatically sends `OFF` after the duration and no heartbeat messages are sent.
+- `pump_station/switch/pulse` – payload is a number of seconds to turn the relay on once. The controller sends a `PULSE` LoRa message containing the duration and also publishes an `OFF` message when the time expires.
 
 ### Home Assistant Discovery
 
