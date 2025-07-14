@@ -484,30 +484,62 @@ void Controller::processReceived(char *rxpacket)
         if (strlen(strings[0]) == 1 && strings[0][0] == 'R')
         {
             uint16_t stateId = atoi(strings[1]);
-            RelayState confirmedRelayState = (strcasecmp(strings[2], "on") == 0) ? RelayState::ON : RelayState::OFF;
 
-            if(mStateId == stateId && confirmedRelayState == requestedRelayState)
+            if (stateId != mStateId)
             {
-                if(relayState != requestedRelayState)
+                Serial.printf("Skipping - likely an old ack expected stateid: %d, got %d.\n", mStateId, stateId);
+                return;
+            }
+
+            if(strcasecmp(strings[2], "on") == 0 || strcasecmp(strings[2], "off") == 0 || strcasecmp(strings[2], "pulse") == 0)
+            {
+                RelayState confirmedRelayState = (strcasecmp(strings[2], "on") == 0 || strcasecmp(strings[2], "pulse") == 0) ? RelayState::ON : RelayState::OFF;
+
+                if(confirmedRelayState == requestedRelayState)
                 {
-                    Serial.printf("Relay state confirmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON": "OFF");
-                    relayState = confirmedRelayState;
-                    //
-                    // Increment state id to ensure we don't process acks for this message again.
-                    //
-                    ++mStateId;
-                    publishState();
+                    if(relayState != requestedRelayState)
+                    {
+                        Serial.printf("Relay state confirmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON" : "OFF");
+                        relayState = confirmedRelayState;
+                        ++mStateId; // do not increment for heartbeat
+                        publishState();
+                    }
+                    else
+                    {
+                        Serial.println("Heartbeat ack received.");
+                    }
                 }
                 else
                 {
-                    Serial.println("Heartbeat ack received.");
+                    Serial.printf("Skipping - ack state mismatch expected: %s got: %s\n", relayStateToString(requestedRelayState).c_str(), strings[2]);
                 }
-                sendAckReceived(stateId);
+            }
+            else if(strcasecmp(strings[2], "pwr") == 0 && index >= 4)
+            {
+                int power = atoi(strings[3]);
+                Serial.printf("Receiver power acknowledged: %d dBm\n", power);
+                receiverTxPower = power;
+                ++mStateId;
+            }
+            else if(strcasecmp(strings[2], "freq") == 0 && index >= 4)
+            {
+                unsigned int freq = atoi(strings[3]);
+                Serial.printf("Receiver status frequency acknowledged: %u sec\n", freq);
+                receiverStatusFreqSec = freq;
+                ++mStateId;
+            }
+            else if(strcasecmp(strings[2], "status") == 0)
+            {
+                Serial.println("Status command acknowledged");
+                ++mStateId;
             }
             else
             {
-                Serial.printf("Skipping - likely an old ack expected stateid: %d, state: %s = %s.\n",mStateId , relayStateToString(confirmedRelayState).c_str(), strings[2]);
+                Serial.printf("Unknown R ack for command: %s\n", strings[2]);
+                ++mStateId;
             }
+
+            sendAckReceived(stateId);
         }
         else if(strlen(strings[0]) == 1 && strings[0][0] == 'H')
         {

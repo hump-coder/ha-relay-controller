@@ -230,7 +230,7 @@ void Receiver::sendAck(char *packet)
     //
     packet[0] = 'R';
 
-    Serial.printf("Sending ack \"%s\", length %d\r\n", rxpacket, strlen(packet));
+    Serial.printf("Sending ack \"%s\", length %d\r\n", packet, strlen(packet));
 
     lora_idle = false;
     Radio.Send((uint8_t *)packet, strlen(packet)); // send the package out
