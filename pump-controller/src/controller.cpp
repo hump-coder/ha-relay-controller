@@ -135,6 +135,8 @@ void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
         ++mStateId;
         sprintf(msg, "PWR:%d", pwr);
         sendMessage(msg);
+        receiverTxPower = pwr;
+        Settings::setInt(KEY_RX_TX_POWER, receiverTxPower);
     }
 }
 
@@ -215,6 +217,7 @@ void Controller::ensureMqtt() {
 void Controller::setup() {
     Settings::begin();
     txPower = Settings::getInt(KEY_CTRL_TX_POWER, TX_OUTPUT_POWER);
+    receiverTxPower = Settings::getInt(KEY_RX_TX_POWER, TX_OUTPUT_POWER);
     statusSendFreqSec = Settings::getInt(KEY_CTRL_STATUS_FREQ, DEFAULT_STATUS_SEND_FREQ_SEC);
 
     Wire.begin(17, 18);
@@ -265,7 +268,8 @@ void Controller::setup() {
     ensureMqtt();
     sendDiscovery();
     publishState();
-    
+    sendMessage("STATUS");
+
     Serial.println("Init MQTT - complete");
 }
 
@@ -454,6 +458,20 @@ void Controller::processReceived(char *rxpacket)
             else
             {
                 Serial.printf("Skipping - likely an old ack expected stateid: %d, state: %s = %s.\n",mStateId , relayStateToString(confirmedRelayState).c_str(), strings[2]);
+            }
+        }
+        else if(strlen(strings[0]) == 1 && strings[0][0] == 'H')
+        {
+            if(index >= 3 && strcasecmp(strings[1], "pwr") == 0)
+            {
+                int power = atoi(strings[2]);
+                if(power != receiverTxPower)
+                {
+                    char msg[16];
+                    ++mStateId;
+                    sprintf(msg, "PWR:%d", receiverTxPower);
+                    sendMessage(msg);
+                }
             }
         }
     }

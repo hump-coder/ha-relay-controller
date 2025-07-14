@@ -149,6 +149,10 @@ void Receiver::setup()
     setIdle();
 
     Serial.println("Init Radio - complete");
+
+    // Notify controller that we're online
+    delay(200);
+    sendHello();
 }
 
 void Receiver::setIdle()
@@ -163,6 +167,15 @@ void Receiver::setIdle()
     // We're idle if we're waiting.
     //
     lora_idle = true;
+}
+
+void Receiver::sendHello()
+{
+    sprintf(txpacket, "H:PWR:%d", txPower);
+    Serial.printf("Sending hello \"%s\", length %d\r\n", txpacket, strlen(txpacket));
+    lora_idle = false;
+    Radio.Send((uint8_t *)txpacket, strlen(txpacket));
+    Serial.println("hello sent.");
 }
 
 unsigned long lastUpdate = 0;
@@ -270,7 +283,10 @@ void Receiver::processReceived(char *rxpacket)
     else if (index >= 3 && strlen(strings[0]) == 1 && strings[0][0] == 'C')
     {
         uint16_t stateId = atoi(strings[1]);
-        if(strcasecmp(strings[2], "pwr") == 0 && index >= 4) {
+        if(strcasecmp(strings[2], "status") == 0) {
+            sendHello();
+            return;
+        } else if(strcasecmp(strings[2], "pwr") == 0 && index >= 4) {
             int power = atoi(strings[3]);
             setTxPower(power);
         } else {
