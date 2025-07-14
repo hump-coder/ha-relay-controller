@@ -22,6 +22,8 @@ class Receiver : public Device
     void setSendStatusFrequency(unsigned int freq);
     unsigned int getSendStatusFrequency() const { return statusSendFreqSec; }
 
+    void sendStatus();
+
     private:
     void sendHello();
     void updateDisplay();
@@ -34,6 +36,7 @@ class Receiver : public Device
     int16_t mLastRssi;
     int8_t mLastSnr;
     bool mRelayState;
+    bool mPulseMode = false;
     unsigned long offTime = 0;
     // Duration to keep the relay on. This value is provided by the
     // controller in the ON message.
@@ -43,6 +46,7 @@ class Receiver : public Device
     bool ackConfirmed;
     int txPower = TX_OUTPUT_POWER;
     unsigned int statusSendFreqSec = DEFAULT_STATUS_SEND_FREQ_SEC;
+    unsigned long lastStatusSend = 0;
     void sendAck(char *rxpacket);
     void setRelayState(bool newRelayState);
     void processReceived(char *rxpacket);

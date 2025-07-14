@@ -65,14 +65,20 @@ private:
     void setRelayState(bool pumpOn, unsigned int onTime = DEFAULT_ON_TIME_SEC, bool pulse = false);
     void pulseRelay(unsigned int onTime);
 
+    void publishControllerStatus();
+    void publishReceiverStatus(int power, int rssi, int snr, bool relay, bool pulse, int battery);
+
     void setSendStatusFrequency(unsigned int freq);
     unsigned int getSendStatusFrequency() const { return statusSendFreqSec; }
 
     unsigned long nextOnSend = 0;
     unsigned int onTimeSec = DEFAULT_ON_TIME_SEC;
     unsigned int statusSendFreqSec = DEFAULT_STATUS_SEND_FREQ_SEC;
+    unsigned int receiverStatusFreqSec = DEFAULT_STATUS_SEND_FREQ_SEC;
     bool heartbeatEnabled = true;
     unsigned long autoOffTime = 0;
+    unsigned long lastStatusPublish = 0;
+    bool pulseMode = false;
 
     // unsigned int messageNumnber = 0;
     void publishState();
