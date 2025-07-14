@@ -36,6 +36,6 @@
 
 // Default number of seconds the receiver will remain ON if
 // no further ON commands are received.
-#define DEFAULT_ON_TIME_SEC                         180
+#define DEFAULT_ON_TIME_SEC                         30
 
 #endif

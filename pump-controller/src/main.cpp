@@ -5,7 +5,7 @@
 #include "receiver.h"
 #include "display.h"
 
-bool isController = true;
+bool isController = false;
 bool enableWifi = isController;
 
 Device *device = 0;
@@ -13,7 +13,9 @@ Display display;
 
 void setup() {
 
+    
     Serial.begin(115200);
+    Serial.println("-------------------------------------------");
     Serial.println("Setting up");
 
     display.setup();
@@ -30,6 +32,7 @@ void setup() {
     
     device->setup();
     Serial.println("Setup complete");
+    Serial.println("-------------------------------------------");
 }
 
 
