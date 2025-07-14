@@ -32,8 +32,6 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr);
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-static bool pumpOn = false;
-
 Receiver::Receiver(Display &display, bool enableWifi) : mDisplay(display), mWifiEnabled(enableWifi)
 {
     ::instance = this;
@@ -63,9 +61,6 @@ void Receiver::updateDisplay()
 
     mDisplay.display.setCursor(10, 36);
     mDisplay.display.printf("SIZE: %d", mLastMessageSize);
-
-    mDisplay.display.setCursor(10, 50);
-    mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);
 
     mDisplay.display.setCursor(10, 50);
     mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);

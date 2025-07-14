@@ -73,9 +73,6 @@ void Controller::updateDisplay()
 
     mDisplay.display.setCursor(10, 50);
     mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);
-
-    mDisplay.display.setCursor(10, 50);
-    mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);
     
     mDisplay.display.display();
 }
