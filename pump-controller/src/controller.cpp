@@ -271,7 +271,7 @@ void Controller::sendAckReceived(uint16_t stateId)
 }
 
 
-void Controller::setRelayState(bool pumpOn, unsigned int onTime)
+void Controller::setRelayState(bool pumpOn, unsigned int onTime, bool pulse)
 {
   ++mStateId;
   requestedRelayState = pumpOn ? RelayState::ON : RelayState::OFF;
@@ -282,8 +282,12 @@ void Controller::setRelayState(bool pumpOn, unsigned int onTime)
 
   char msg[32];
   if(pumpOn) {
-      sprintf(msg, "ON:%u", onTimeSec);
-      nextOnSend = millis();
+      if(pulse) {
+          sprintf(msg, "PULSE:%u", onTimeSec);
+      } else {
+          sprintf(msg, "ON:%u", onTimeSec);
+          nextOnSend = millis();
+      }
   } else {
       sprintf(msg, "OFF");
   }
@@ -295,7 +299,7 @@ void Controller::pulseRelay(unsigned int onTime)
 {
     heartbeatEnabled = false;
     autoOffTime = millis() + (unsigned long)onTime * 1000UL;
-    setRelayState(true, onTime);
+    setRelayState(true, onTime, true);
 }
 
 
