@@ -92,7 +92,7 @@ void Controller::publishState() {
     updateDisplay();
 }
 
-void controllerMqttCallback(char *topic, byte *payload, unsigned int length) 
+void controllerMqttCallback(char *topic, byte *payload, unsigned int length)
 {
   controllerInstance->mqttCallback(topic, payload, length);
 }
@@ -100,25 +100,31 @@ void controllerMqttCallback(char *topic, byte *payload, unsigned int length)
 void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
     String cmd;
 
-    Serial.println("MQTT CALLBACK");
-
-
     for (unsigned int i = 0; i < length; i++) {
         cmd += (char)payload[i];
     }
-    if (cmd.startsWith("ON")) {
-        int idx = cmd.indexOf(":");
-        unsigned int t = DEFAULT_ON_TIME_SEC;
-        if(idx > 0) {
-            t = cmd.substring(idx+1).toInt();
-            if(t == 0) t = DEFAULT_ON_TIME_SEC;
-        }
-        setRelayState(true, t);
-    } else if (cmd.startsWith("OFF")) {
-        setRelayState(false);
-    }
 
-    publishState();
+    if(strcmp(topic, "pump_station/switch/set") == 0) {
+        if (cmd.startsWith("ON")) {
+            int idx = cmd.indexOf(":");
+            unsigned int t = DEFAULT_ON_TIME_SEC;
+            if(idx > 0) {
+                t = cmd.substring(idx+1).toInt();
+                if(t == 0) t = DEFAULT_ON_TIME_SEC;
+            }
+            heartbeatEnabled = true;
+            setRelayState(true, t);
+        } else if (cmd.startsWith("OFF")) {
+            heartbeatEnabled = false;
+            setRelayState(false);
+        }
+        publishState();
+    } else if(strcmp(topic, "pump_station/switch/pulse") == 0) {
+        unsigned int t = cmd.toInt();
+        if(t == 0) t = DEFAULT_ON_TIME_SEC;
+        pulseRelay(t);
+        publishState();
+    }
 }
 
 #define BASE_TOPIC "esp32-lora-controller"
@@ -178,6 +184,7 @@ void Controller::ensureMqtt() {
         }
     }
     mqttClient.subscribe("pump_station/switch/set");
+    mqttClient.subscribe("pump_station/switch/pulse");
 }
 
 void Controller::setup() {
@@ -280,10 +287,22 @@ void Controller::setRelayState(bool pumpOn, unsigned int onTime)
   sendMessage(msg);
 }
 
+void Controller::pulseRelay(unsigned int onTime)
+{
+    heartbeatEnabled = false;
+    autoOffTime = millis() + (unsigned long)onTime * 1000UL;
+    setRelayState(true, onTime);
+}
+
 
 void Controller::loop() {
+    if(autoOffTime && millis() > autoOffTime) {
+        autoOffTime = 0;
+        heartbeatEnabled = false;
+        setRelayState(false);
+    }
 
-    if(lora_idle && requestedRelayState == RelayState::ON && relayState == RelayState::ON) {
+    if(heartbeatEnabled && lora_idle && requestedRelayState == RelayState::ON && relayState == RelayState::ON) {
         unsigned long interval = (onTimeSec * 1000UL) / 2;
         if(millis() - nextOnSend >= interval) {
             char msg[32];

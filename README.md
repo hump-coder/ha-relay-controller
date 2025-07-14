@@ -20,3 +20,8 @@ The default environment targets the Heltec WiFi LoRa 32 V3 board.
 ## Usage
 
 Flash the compiled firmware to two boards. Set `isController` as required before compiling each device. Both devices display basic status information on the onboard OLED screen.
+
+### MQTT Topics
+
+- `pump_station/switch/set` – payload `ON[:seconds]` or `OFF` to control the relay. If `seconds` is omitted the controller uses `DEFAULT_ON_TIME_SEC`.
+- `pump_station/switch/pulse` – payload is a number of seconds to turn the relay on once. The controller automatically sends `OFF` after the duration and no heartbeat messages are sent.

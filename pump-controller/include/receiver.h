@@ -28,7 +28,9 @@ class Receiver : public Device
     int8_t mLastSnr;
     bool mRelayState;
     unsigned long offTime = 0;
-    unsigned int onTimeSec = DEFAULT_ON_TIME_SEC;
+    // Duration to keep the relay on. This value is provided by the
+    // controller in the ON message.
+    unsigned int onTimeSec = 0;
     int acksRemaining;
     uint16_t ackStateId;
     bool ackConfirmed;
