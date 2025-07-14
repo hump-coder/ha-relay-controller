@@ -31,6 +31,9 @@ public:
 
     void processReceived(char *rxpacket);
 
+    int getTxPower() const { return txPower; }
+    void setTxPower(int power);
+
 private:
     Display &mDisplay;
     String mLastMessage;
@@ -45,6 +48,7 @@ private:
     char rxpacket[BUFFER_SIZE];
 
     double txNumber;
+    int txPower = TX_OUTPUT_POWER;
 
     bool lora_idle = true;
 

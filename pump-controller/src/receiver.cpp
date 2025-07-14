@@ -71,7 +71,7 @@ void Receiver::updateDisplay()
     }
 
     mDisplay.display.setCursor(10, 50);
-    mDisplay.display.printf("RSSI: %d SNR: %d", mLastRssi, mLastSnr);
+    mDisplay.display.printf("RSSI:%d SNR:%d PWR:%d", mLastRssi, mLastSnr, txPower);
 
     mDisplay.display.display();
 }
@@ -131,7 +131,8 @@ void Receiver::setup()
 
     Radio.Init(&RadioEvents);
     Radio.SetChannel(RF_FREQUENCY);
-    Radio.SetTxConfig(MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
+    txPower = TX_OUTPUT_POWER;
+    Radio.SetTxConfig(MODEM_LORA, txPower, 0, LORA_BANDWIDTH,
                       LORA_SPREADING_FACTOR, LORA_CODINGRATE,
                       LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
                       true, 0, 0, LORA_IQ_INVERSION_ON, 3000);
@@ -214,6 +215,21 @@ void Receiver::setRelayState(bool newRelayState)
     }
 }
 
+void Receiver::setTxPower(int power)
+{
+    if(power < MIN_TX_OUTPUT_POWER)
+        power = MIN_TX_OUTPUT_POWER;
+    if(power > 22)
+        power = 22;
+
+    txPower = power;
+    Radio.SetTxConfig(MODEM_LORA, txPower, 0, LORA_BANDWIDTH,
+                      LORA_SPREADING_FACTOR, LORA_CODINGRATE,
+                      LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
+                      true, 0, 0, LORA_IQ_INVERSION_ON, 3000);
+    updateDisplay();
+}
+
 void Receiver::processReceived(char *rxpacket)
 {
     char *strings[10];
@@ -243,16 +259,21 @@ void Receiver::processReceived(char *rxpacket)
     else if (index >= 3 && strlen(strings[0]) == 1 && strings[0][0] == 'C')
     {
         uint16_t stateId = atoi(strings[1]);
-        bool newRelayState = false;
-        if(strcasecmp(strings[2], "on") == 0 || strcasecmp(strings[2], "pulse") == 0) {
-            newRelayState = true;
+        if(strcasecmp(strings[2], "pwr") == 0 && index >= 4) {
+            int power = atoi(strings[3]);
+            setTxPower(power);
+        } else {
+            bool newRelayState = false;
+            if(strcasecmp(strings[2], "on") == 0 || strcasecmp(strings[2], "pulse") == 0) {
+                newRelayState = true;
+            }
+            if(newRelayState && index >= 4) {
+                onTimeSec = atoi(strings[3]);
+            } else if(newRelayState) {
+                onTimeSec = 0;
+            }
+            setRelayState(newRelayState);
         }
-        if(newRelayState && index >= 4) {
-            onTimeSec = atoi(strings[3]);
-        } else if(newRelayState) {
-            onTimeSec = 0;
-        }
-        setRelayState(newRelayState);
         delay(200);
         ackStateId = stateId;
         ackConfirmed = false;

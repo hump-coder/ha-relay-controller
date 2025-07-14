@@ -25,10 +25,12 @@ Flash the compiled firmware to two boards. Set `isController` as required before
 
 - `pump_station/switch/set` – payload `ON[:seconds]` or `OFF` to control the relay. If `seconds` is omitted the controller uses `DEFAULT_ON_TIME_SEC`.
 - `pump_station/switch/pulse` – payload is a number of seconds to turn the relay on once. The controller sends a `PULSE` LoRa message containing the duration and also publishes an `OFF` message when the time expires.
+- `pump_station/tx_power/controller/set` – integer transmit power in dBm for the controller.
+- `pump_station/tx_power/receiver/set` – integer transmit power in dBm for the receiver.
 
 ### Home Assistant Discovery
 
 The controller publishes MQTT discovery messages for easy integration with Home Assistant.
-It exposes a `switch` entity for basic on/off control and a `number` entity named
-`Pump Pulse` that publishes its value to `pump_station/switch/pulse` whenever the
-number is changed. The number represents the pulse duration in seconds.
+It exposes a `switch` entity for basic on/off control and `number` entities named
+`Pump Pulse`, `Controller Tx Power` and `Receiver Tx Power`.
+The controller enforces a minimum transmit power defined by `MIN_TX_OUTPUT_POWER`.

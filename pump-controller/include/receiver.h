@@ -16,6 +16,9 @@ class Receiver : public Device
     void OnTxDone();
     void OnTxTimeout();
 
+    int getTxPower() const { return txPower; }
+    void setTxPower(int power);
+
     private:
     void updateDisplay();
     void setIdle();
@@ -34,6 +37,7 @@ class Receiver : public Device
     int acksRemaining;
     uint16_t ackStateId;
     bool ackConfirmed;
+    int txPower = TX_OUTPUT_POWER;
     void sendAck(char *rxpacket);
     void setRelayState(bool newRelayState);
     void processReceived(char *rxpacket);
