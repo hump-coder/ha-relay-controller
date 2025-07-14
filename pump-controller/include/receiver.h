@@ -37,4 +37,4 @@ class Receiver : public Device
 };
 
 
-#endif // PUMP_CONTROLLER_H
+#endif // PUMP_RECEIVER_H
