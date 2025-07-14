@@ -3,6 +3,7 @@
 
 #include "device.h"
 #include "display.h"
+#include "device-config.h"
 
 class Receiver : public Device
 {
@@ -26,6 +27,8 @@ class Receiver : public Device
     int16_t mLastRssi;
     int8_t mLastSnr;
     bool mRelayState;
+    unsigned long offTime = 0;
+    unsigned int onTimeSec = DEFAULT_ON_TIME_SEC;
     int acksRemaining;
     uint16_t ackStateId;
     bool ackConfirmed;
