@@ -89,6 +89,10 @@ private:
     // Remaining retries when sending an OFF command
     int offRetriesRemaining = 0;
 
+    // Flag set when a command is received on
+    // pump_station/switch/set immediately after connecting
+    bool initialSetReceived = false;
+
     // unsigned int messageNumnber = 0;
     void publishState();
     void sendDiscovery();

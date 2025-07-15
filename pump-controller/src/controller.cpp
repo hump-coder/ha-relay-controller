@@ -44,6 +44,7 @@ Controller::Controller(Display &display) : mDisplay(display), mqttClient(espClie
     requestedRelayState = RelayState::UNKNOWN;
     pulseMode = false;
     lastStatusPublish = 0;
+    initialSetReceived = false;
 }
 
 String relayStateToString(RelayState state)
@@ -128,6 +129,7 @@ void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
     }
 
     if(strcmp(topic, "pump_station/switch/set") == 0) {
+        initialSetReceived = true;
         if (cmd.startsWith("ON")) {
             int idx = cmd.indexOf(":");
             unsigned int t = DEFAULT_ON_TIME_SEC;
@@ -259,8 +261,9 @@ void Controller::ensureMqtt() {
     mqttClient.subscribe("pump_station/status_freq/receiver/set");
 
     // Process any retained messages (such as the last set command)
+    initialSetReceived = false;
     unsigned long start = millis();
-    while (millis() - start < 500) {
+    while (millis() - start < 2000 && !initialSetReceived) {
         mqttClient.loop();
         delay(10);
     }

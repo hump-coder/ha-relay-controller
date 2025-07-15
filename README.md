@@ -45,4 +45,6 @@ persisted from previous MQTT commands it will resend the appropriate
 configuration messages.
 
 When the controller connects to MQTT it processes any retained command on
-`pump_station/switch/set` so the relay resumes the last requested state.
+`pump_station/switch/set` so the relay resumes the last requested state. The
+controller waits briefly (up to two seconds) after subscribing for this retained
+message.
