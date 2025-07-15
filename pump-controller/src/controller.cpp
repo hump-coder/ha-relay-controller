@@ -384,6 +384,12 @@ void Controller::setRelayState(bool pumpOn, unsigned int onTime, bool pulse)
   }
   pulseMode = pumpOn && pulse;
   relayState = RelayState::UNKNOWN;
+  lastCommandTime = millis();
+  if(pumpOn) {
+      offRetriesRemaining = 0;
+  } else {
+      offRetriesRemaining = OFF_RETRY_COUNT;
+  }
 
   char msg[32];
   if(pumpOn) {
@@ -415,7 +421,9 @@ void Controller::loop() {
         setRelayState(false);
     }
 
-    if(heartbeatEnabled && lora_idle && requestedRelayState == RelayState::ON && relayState == RelayState::ON) {        
+    // When ON is requested continue to periodically resend the ON command even
+    // if the receiver is not acknowledging.
+    if(heartbeatEnabled && lora_idle && requestedRelayState == RelayState::ON) {
         unsigned long interval = (onTimeSec * 1000UL) / 20;
         unsigned long minimumInterval = 5000;
         unsigned long maximumInterval = 30000;
@@ -430,6 +438,27 @@ void Controller::loop() {
             sprintf(msg, "ON:%u", onTimeSec);
             sendMessage(msg);
             nextOnSend = millis();
+        }
+    }
+
+    // Detect loss of communication while the relay should be ON
+    if(requestedRelayState == RelayState::ON && relayState == RelayState::ON &&
+       lastContactTime && millis() - lastContactTime > COMMUNICATION_TIMEOUT_MS) {
+        relayState = RelayState::UNKNOWN;
+        publishState();
+    }
+
+    // Retry OFF commands a few times before giving up
+    if(requestedRelayState == RelayState::OFF && relayState != RelayState::OFF) {
+        if(offRetriesRemaining > 0 && millis() - lastCommandTime >= OFF_RETRY_INTERVAL_MS && lora_idle) {
+            sendMessage("OFF");
+            lastCommandTime = millis();
+            offRetriesRemaining--;
+        } else if(offRetriesRemaining == 0 && millis() - lastCommandTime >= OFF_RETRY_INTERVAL_MS) {
+            if(relayState != RelayState::UNKNOWN) {
+                relayState = RelayState::UNKNOWN;
+                publishState();
+            }
         }
     }
     
@@ -479,6 +508,8 @@ void Controller::processReceived(char *rxpacket)
     char *strings[10];
     char *ptr = NULL;
     int index = 0;
+
+    lastContactTime = millis();
     ptr = strtok(rxpacket, ":;"); // takes a list of delimiters
     while (ptr != NULL)
     {
@@ -511,6 +542,7 @@ void Controller::processReceived(char *rxpacket)
                         Serial.printf("Relay state confirmed - publishing new state: %s\n", confirmedRelayState == RelayState::ON ? "ON" : "OFF");
                         relayState = confirmedRelayState;
                         ++mStateId; // do not increment for heartbeat
+                        offRetriesRemaining = 0;
                         publishState();
                     }
                     else

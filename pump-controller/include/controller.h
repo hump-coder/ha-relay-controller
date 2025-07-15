@@ -80,6 +80,15 @@ private:
     unsigned long lastStatusPublish = 0;
     bool pulseMode = false;
 
+    // Timestamp of the last packet received from the receiver
+    unsigned long lastContactTime = 0;
+
+    // Timestamp of the last command sent that expects an acknowledgement
+    unsigned long lastCommandTime = 0;
+
+    // Remaining retries when sending an OFF command
+    int offRetriesRemaining = 0;
+
     // unsigned int messageNumnber = 0;
     void publishState();
     void sendDiscovery();
