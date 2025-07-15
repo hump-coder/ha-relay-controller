@@ -42,4 +42,14 @@
 // Default frequency in seconds to send a status update
 #define DEFAULT_STATUS_SEND_FREQ_SEC                60
 
+// Milliseconds to wait without receiving any packets from the receiver
+// before marking the relay state as unknown.
+#define COMMUNICATION_TIMEOUT_MS                    60000
+
+// Interval in milliseconds between OFF command retries
+#define OFF_RETRY_INTERVAL_MS                       5000
+
+// Number of retries to attempt when sending an OFF command
+#define OFF_RETRY_COUNT                             3
+
 #endif
