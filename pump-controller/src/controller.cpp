@@ -45,6 +45,8 @@ Controller::Controller(Display &display) : mDisplay(display), mqttClient(espClie
     pulseMode = false;
     lastStatusPublish = 0;
     initialSetReceived = false;
+    initialStateReceived = false;
+    retainedStateOn = false;
 }
 
 String relayStateToString(RelayState state)
@@ -174,6 +176,9 @@ void Controller::mqttCallback(char *topic, byte *payload, unsigned int length) {
         sendMessage(msg);
         receiverStatusFreqSec = f;
         Settings::setInt(KEY_RX_STATUS_FREQ, receiverStatusFreqSec);
+    } else if(strcmp(topic, "pump_station/switch/state") == 0) {
+        initialStateReceived = true;
+        retainedStateOn = cmd.startsWith("ON");
     }
 }
 
@@ -259,13 +264,24 @@ void Controller::ensureMqtt() {
     mqttClient.subscribe("pump_station/tx_power/receiver/set");
     mqttClient.subscribe("pump_station/status_freq/controller/set");
     mqttClient.subscribe("pump_station/status_freq/receiver/set");
+    mqttClient.subscribe("pump_station/switch/state");
 
-    // Process any retained messages (such as the last set command)
+    // Process any retained messages (such as the last set command or state)
     initialSetReceived = false;
+    initialStateReceived = false;
+    retainedStateOn = false;
     unsigned long start = millis();
-    while (millis() - start < 2000 && !initialSetReceived) {
+    while (millis() - start < 2000 && !initialSetReceived && !initialStateReceived) {
         mqttClient.loop();
         delay(10);
+    }
+
+    mqttClient.unsubscribe("pump_station/switch/state");
+
+    if(!initialSetReceived && initialStateReceived && retainedStateOn) {
+        // No retained command but last known state was ON
+        heartbeatEnabled = true;
+        setRelayState(true);
     }
 }
 
