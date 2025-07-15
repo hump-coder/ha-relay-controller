@@ -257,6 +257,13 @@ void Controller::ensureMqtt() {
     mqttClient.subscribe("pump_station/tx_power/receiver/set");
     mqttClient.subscribe("pump_station/status_freq/controller/set");
     mqttClient.subscribe("pump_station/status_freq/receiver/set");
+
+    // Process any retained messages (such as the last set command)
+    unsigned long start = millis();
+    while (millis() - start < 500) {
+        mqttClient.loop();
+        delay(10);
+    }
 }
 
 void Controller::setup() {

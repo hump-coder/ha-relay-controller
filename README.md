@@ -43,3 +43,6 @@ responds with a `HELLO` message containing its current configuration (currently
 just transmit power). If the values differ from those the controller has
 persisted from previous MQTT commands it will resend the appropriate
 configuration messages.
+
+When the controller connects to MQTT it processes any retained command on
+`pump_station/switch/set` so the relay resumes the last requested state.
