@@ -415,9 +415,10 @@ void Controller::loop() {
         setRelayState(false);
     }
 
-    if(heartbeatEnabled && lora_idle && requestedRelayState == RelayState::ON && relayState == RelayState::ON) {
-        unsigned long interval = (onTimeSec * 1000UL) / 4;
+    if(heartbeatEnabled && lora_idle && requestedRelayState == RelayState::ON && relayState == RelayState::ON) {        
+        unsigned long interval = (onTimeSec * 1000UL) / 20;
         unsigned long minimumInterval = 5000;
+        unsigned long maximumInterval = 30000;
         
         if(interval < minimumInterval)
         {
