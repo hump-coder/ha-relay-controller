@@ -47,4 +47,6 @@ configuration messages.
 When the controller connects to MQTT it processes any retained command on
 `pump_station/switch/set` so the relay resumes the last requested state. The
 controller waits briefly (up to two seconds) after subscribing for this retained
-message.
+message. If no retained command is found but the `pump_station/switch/state`
+topic is retained as `ON`, the controller issues a fresh `ON` command so the
+receiver resumes operation.

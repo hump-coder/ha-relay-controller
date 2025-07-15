@@ -93,6 +93,10 @@ private:
     // pump_station/switch/set immediately after connecting
     bool initialSetReceived = false;
 
+    // Tracks the retained pump_station/switch/state value at startup
+    bool initialStateReceived = false;
+    bool retainedStateOn = false;
+
     // unsigned int messageNumnber = 0;
     void publishState();
     void sendDiscovery();
