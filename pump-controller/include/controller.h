@@ -38,6 +38,7 @@ public:
 private:
     Display &mDisplay;
     String mLastMessage;
+    bool mHasBattery = false;
     uint16_t mLastMessageSize;
     int16_t mLastRssi;
     int8_t mLastSnr;

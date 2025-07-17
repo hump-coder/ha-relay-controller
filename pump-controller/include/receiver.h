@@ -5,11 +5,12 @@
 #include "display.h"
 #include "device-config.h"
 #include "settings.h"
+#include "battery.h"
 
 class Receiver : public Device
 {
     public:
-    Receiver(Display &display, bool enableWifi);
+    Receiver(Display &display, Battery &battery, bool enableWifi);
     void setup() override;
     void loop() override;
 
@@ -31,6 +32,7 @@ class Receiver : public Device
     bool mWifiEnabled=false;
     private:
     Display &mDisplay;
+    Battery &mBattery;
     String mLastMessage;
     uint16_t mLastMessageSize;
     int16_t mLastRssi;

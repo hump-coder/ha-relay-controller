@@ -16,7 +16,7 @@
 // #include <Adafruit_SSD1306.h>
 
 Receiver *instance;
-extern Battery battery;
+// extern Battery battery;
 
 char txpacket[BUFFER_SIZE];
 char rxpacket[BUFFER_SIZE];
@@ -35,7 +35,7 @@ void OnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr);
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
-Receiver::Receiver(Display &display, bool enableWifi) : mDisplay(display), mWifiEnabled(enableWifi)
+Receiver::Receiver(Display &display, Battery &battery, bool enableWifi) : mDisplay(display), mBattery(battery), mWifiEnabled(enableWifi)
 {
     ::instance = this;
 
@@ -53,18 +53,23 @@ Receiver::Receiver(Display &display, bool enableWifi) : mDisplay(display), mWifi
 
 void Receiver::updateDisplay()
 {
+    int x = 5;
+    int step = 12;
+    int y = 0;
     mDisplay.display.clearDisplay();
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
     mDisplay.display.setTextColor(SSD1306_WHITE);
-    mDisplay.display.setCursor(10, 0);
+    mDisplay.display.setCursor(x, y);
     mDisplay.display.printf("Receiver: ");
     mDisplay.display.println(mRelayState ? "ON" : "OFF");
     mDisplay.display.setTextSize(1); // Draw 2X-scale text
 
-    mDisplay.display.setCursor(10, 22);
+    y+=step;
+    mDisplay.display.setCursor(x, y);
     mDisplay.display.printf("Ack: %s", ackConfirmed ? "OK" : "WAIT");
-
-    mDisplay.display.setCursor(10, 36);
+    
+    y+=step;
+    mDisplay.display.setCursor(x, y);
     if(mRelayState) {
         unsigned long remaining = 0;
         if(offTime > millis()) {
@@ -75,12 +80,18 @@ void Receiver::updateDisplay()
         mDisplay.display.printf("Pend Acks: %d", acksRemaining);
     }
 
-    mDisplay.display.setCursor(10, 50);
-    int batt = battery.getPercentage();
-    bool chg = battery.isCharging();
+    y+=step;
+    mDisplay.display.setCursor(x, y);
     mDisplay.display.printf("PW:%d RS:%d SR:%d", txPower, mLastRssi, mLastSnr);
-    mDisplay.display.setCursor(10, 58);
-    mDisplay.display.printf("BAT:%d%% %s", batt, chg ? "CHG" : " ");
+
+    y+=step;
+    mDisplay.display.setCursor(x, y);
+
+    float voltage = mBattery.getVoltage();
+    int batt = mBattery.getPercentage();
+    bool chg = mBattery.isCharging();
+
+    mDisplay.display.printf("BAT:%d%% V:%.2f %s", batt, voltage, chg ? "CHG" : " ");
 
     mDisplay.display.display();
 }
@@ -188,7 +199,7 @@ void Receiver::sendHello()
 
 void Receiver::sendStatus()
 {
-    int battery = 77;
+    int battery = mBattery.getPercentage();
     sprintf(txpacket, "S:%d:%d:%d:%d:%d:%d", txPower, mLastRssi, mLastSnr, mRelayState ? 1 : 0, mPulseMode ? 1 : 0, battery);
     Serial.printf("Sending status \"%s\", length %d\r\n", txpacket, strlen(txpacket));
     lora_idle = false;

@@ -87,17 +87,19 @@ void Controller::updateDisplay()
     }
     mDisplay.display.setCursor(10, 36);
     mDisplay.display.printf("Status: %s", status);
-
-    int batt = battery.getPercentage();
-    bool chg = battery.isCharging();
+        
     mDisplay.display.setCursor(10, 50);
     mDisplay.display.printf("PW:%d RS:%d SR:%d", txPower, mLastRssi, mLastSnr);
-    mDisplay.display.setCursor(10, 58);
-    mDisplay.display.printf("BAT:%d%% %s", batt, chg ? "CHG" : " ");
-    
+
+    if (mHasBattery)
+    {
+        int batt = battery.getPercentage();
+        bool chg = battery.isCharging();
+        mDisplay.display.setCursor(10, 58);
+        mDisplay.display.printf("BAT:%d%% %s", batt, chg ? "CHG" : " ");
+    }
     mDisplay.display.display();
 }
-
 
 void Controller::publishState() {
     mqttClient.publish("pump_station/switch/state", relayStateToString(relayState).c_str(), true);

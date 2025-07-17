@@ -6,7 +6,7 @@
 #include "display.h"
 #include "battery.h"
 
-bool isController = true;
+bool isController = false;
 bool enableWifi = isController;
 
 Device *device = 0;
@@ -29,7 +29,7 @@ void setup() {
     }
     else
     {
-        device = new Receiver(display, enableWifi);
+        device = new Receiver(display, battery, enableWifi);
     }
 
     
