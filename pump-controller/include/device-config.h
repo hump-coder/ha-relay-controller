@@ -52,4 +52,10 @@
 // Number of retries to attempt when sending an OFF command
 #define OFF_RETRY_COUNT                             3
 
+// Analog pin used to measure battery voltage
+#define BATTERY_VOLTAGE_PIN A13
+
+// Digital pin indicating charge status (HIGH when charging)
+#define CHARGE_STATUS_PIN 34
+
 #endif

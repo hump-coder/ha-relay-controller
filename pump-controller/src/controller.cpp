@@ -9,6 +9,7 @@
 #include "display.h"
 #include "device-config.h"
 #include "settings.h"
+#include "battery.h"
 #include "controller.h"
 
 // #include <Wire.h>
@@ -16,6 +17,7 @@
 // #include <Adafruit_SSD1306.h>
 
 Controller *controllerInstance;
+extern Battery battery;
 
 void COnRxDone(uint8_t *payload, uint16_t size, int16_t rssi, int8_t snr)
 {
@@ -86,8 +88,12 @@ void Controller::updateDisplay()
     mDisplay.display.setCursor(10, 36);
     mDisplay.display.printf("Status: %s", status);
 
+    int batt = battery.getPercentage();
+    bool chg = battery.isCharging();
     mDisplay.display.setCursor(10, 50);
-    mDisplay.display.printf("PW:%d RS:%d SR:%d ", txPower, mLastRssi, mLastSnr);
+    mDisplay.display.printf("PW:%d RS:%d SR:%d", txPower, mLastRssi, mLastSnr);
+    mDisplay.display.setCursor(10, 58);
+    mDisplay.display.printf("BAT:%d%% %s", batt, chg ? "CHG" : " ");
     
     mDisplay.display.display();
 }
@@ -100,11 +106,12 @@ void Controller::publishState() {
 
 void Controller::publishControllerStatus() {
     char payload[128];
+    int batt = battery.getPercentage();
     snprintf(payload, sizeof(payload),
-             "{\"power\":%d,\"rssi\":%d,\"snr\":%d,\"state\":\"%s\",\"mode\":\"%s\",\"battery\":77}",
+             "{\"power\":%d,\"rssi\":%d,\"snr\":%d,\"state\":\"%s\",\"mode\":\"%s\",\"battery\":%d}",
              txPower, mLastRssi, mLastSnr,
              relayStateToString(relayState).c_str(),
-             pulseMode ? "pulse" : "normal");
+             pulseMode ? "pulse" : "normal", batt);
     mqttClient.publish("pump_station/status/controller", payload, true);
 }
 
