@@ -4,12 +4,14 @@
 #include "controller.h"
 #include "receiver.h"
 #include "display.h"
+#include "battery.h"
 
 bool isController = true;
 bool enableWifi = isController;
 
 Device *device = 0;
 Display display;
+Battery battery;
 
 void setup() {
 
@@ -19,6 +21,7 @@ void setup() {
     Serial.println("Setting up");
 
     display.setup();
+    battery.setup();
 
     if(isController)
     {

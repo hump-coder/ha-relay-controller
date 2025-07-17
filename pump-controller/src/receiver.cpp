@@ -9,12 +9,14 @@
 #include "device-config.h"
 #include "settings.h"
 #include "receiver.h"
+#include "battery.h"
 
 // #include <Wire.h>
 // #include <Adafruit_GFX.h>
 // #include <Adafruit_SSD1306.h>
 
 Receiver *instance;
+extern Battery battery;
 
 char txpacket[BUFFER_SIZE];
 char rxpacket[BUFFER_SIZE];
@@ -74,7 +76,11 @@ void Receiver::updateDisplay()
     }
 
     mDisplay.display.setCursor(10, 50);
-    mDisplay.display.printf("PW:%d RS:%d SR:%d ", txPower, mLastRssi, mLastSnr);
+    int batt = battery.getPercentage();
+    bool chg = battery.isCharging();
+    mDisplay.display.printf("PW:%d RS:%d SR:%d", txPower, mLastRssi, mLastSnr);
+    mDisplay.display.setCursor(10, 58);
+    mDisplay.display.printf("BAT:%d%% %s", batt, chg ? "CHG" : " ");
 
     mDisplay.display.display();
 }
