@@ -21,7 +21,7 @@ int Battery::getPercentage()
     // float voltage = getVoltage();
     int percent = floor(((mVoltage - min) / (max - min)) * 100);
 
-    Serial.printf("RAW BAT: percent: %d%% volts: %.2f\n", percent, mVoltage);
+    // Serial.printf("RAW BAT: percent: %d%% volts: %.2f\n", percent, mVoltage);
 
     if (percent < 0)
         percent = 0;

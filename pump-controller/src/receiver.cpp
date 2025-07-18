@@ -91,7 +91,7 @@ void Receiver::updateDisplay()
     int batt = mBattery.getPercentage();
     bool chg = mBattery.isCharging();
 
-    mDisplay.display.printf("BAT:%d%% V:%.2f %s", batt, voltage, chg ? "CHG" : " ");
+    mDisplay.display.printf("BAT:%d%% %.2fv %s", batt, voltage, chg ? "CHG" : " ");
 
     mDisplay.display.display();
 }
